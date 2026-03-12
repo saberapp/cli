@@ -36,6 +36,19 @@ archives:
       - LICENSE
       - README.md
 
+brews:
+  - name: saber
+    repository:
+      owner: saberapp
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    homepage: "https://saber.app"
+    description: "Run Saber signal research from your terminal"
+    install: |
+      bin.install "saber"
+    test: |
+      system "#{bin}/saber", "version"
+
 checksum:
   name_template: "saber_{{ .Version }}_checksums.txt"
   algorithm: sha256
