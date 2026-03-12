@@ -40,20 +40,6 @@ checksum:
   name_template: "saber_{{ .Version }}_checksums.txt"
   algorithm: sha256
 
-brews:
-  - name: saber
-    repository:
-      owner: saberapp
-      name: homebrew-tap
-      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-    homepage: "https://saber.app"
-    description: "Saber CLI — run signal research and manage lists from your terminal"
-    license: "MIT"
-    install: |
-      bin.install "saber"
-    test: |
-      system "#{bin}/saber", "version"
-
 release:
   github:
     owner: saberapp
