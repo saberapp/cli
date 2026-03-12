@@ -21,7 +21,6 @@ func main() {
 	if err := root.Execute(); err != nil {
 		var notAuth *config.ErrNotAuthenticated
 		if errors.As(err, &notAuth) {
-			// Message already printed by the command; just exit with the auth error code.
 			os.Exit(2)
 		}
 		fmt.Fprintln(os.Stderr, "error:", err)

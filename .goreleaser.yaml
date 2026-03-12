@@ -6,7 +6,7 @@ before:
 
 builds:
   - id: saber
-    main: .
+    main: ./cmd/saber
     binary: saber
     env:
       - CGO_ENABLED=0
