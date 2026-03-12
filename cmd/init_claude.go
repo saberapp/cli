@@ -131,7 +131,7 @@ func fetchConnectorSection() string {
 
 	var sb strings.Builder
 	for _, conn := range resp.Connectors {
-		sb.WriteString(fmt.Sprintf("| %-20s | %-12s |\n", conn.Source, conn.Status))
+		fmt.Fprintf(&sb, "| %-20s | %-12s |\n", conn.Source, conn.Status)
 	}
 	return strings.TrimRight(sb.String(), "\n")
 }
