@@ -11,44 +11,26 @@ saber credits
 
 ---
 
-## How it works
-
-The CLI talks directly to the Go Platform public API (`https://api.saber.app`), authenticated with an API key stored locally at `~/.saber/credentials.json`.
-
-**Signal flow** — `saber signal` is async:
-1. `POST /v1/companies/signals` creates a signal and returns immediately with `status: processing`
-2. The CLI polls `GET /v1/companies/signals/{id}` every 3 seconds (configurable) with a spinner until `status` is `completed` or `failed`
-3. The result (answer, confidence, reasoning, sources) is printed in a tabwriter table
-
-**Lists** — company and contact lists are stored server-side. Create a list once, then fetch its companies or contacts as many times as you need.
-
-**Auth** — the API key is looked up in order:
-1. `SABER_API_KEY` env var (CI-friendly; never written to disk)
-2. `~/.saber/credentials.json` (written by `saber auth login`)
-
----
-
 ## Installation
 
-### Homebrew (macOS / Linux)
+### curl (recommended)
+
 ```sh
-brew install saber-app/tap/saber
+curl -sSL https://raw.githubusercontent.com/saberapp/cli/main/scripts/install.sh | sh
 ```
 
-### Direct install script
+Installs to `/usr/local/bin/saber` (prompts for sudo if needed). Works on macOS and Linux.
+
+### go install
+
 ```sh
-curl -sSL https://install.saber.app | sh
+go install github.com/saberapp/cli/cmd/saber@latest
 ```
 
-### Build from source
-```sh
-git clone https://github.com/saberapp/platform
-cd platform/cli
-make build          # outputs bin/saber
-make install        # copies to $GOPATH/bin
-```
-
-Requires Go 1.23+.
+> Note: `go install` puts the binary in `$GOPATH/bin` (usually `~/go/bin`). Make sure that's in your `PATH`:
+> ```sh
+> export PATH="$HOME/go/bin:$PATH"
+> ```
 
 ---
 
@@ -71,7 +53,7 @@ Keys are validated against the API before being saved. The key format is `sk_liv
 
 ### `saber signal`
 
-Run an async company signal research query.
+Run a company signal research query.
 
 ```sh
 saber signal --domain acme.com --question "Are they hiring engineers?"
@@ -153,7 +135,7 @@ saber connectors
 
 ```sh
 saber version
-# saber version 0.1.0 (commit abc1234, built 2026-03-12T10:00:00Z)
+# saber version 0.1.1 (commit abc1234, built 2026-03-12T10:00:00Z)
 ```
 
 ---
@@ -173,7 +155,7 @@ Available on every command:
 
 ## Running locally for testing
 
-The CLI can point at the local Go Platform instance instead of production.
+Point the CLI at your local Go Platform instance instead of production.
 
 ### 1. Start the local stack
 
@@ -182,58 +164,29 @@ From the monorepo root:
 docker compose up   # starts mongo, postgres, redis, temporal, go-platform
 ```
 
-The Go Platform API runs on `http://localhost:3001` (or whatever port is configured in `docker-compose.yml`). The public routes are served under `/public`, so the full base URL for the CLI is `http://localhost:3001/public`.
+The Go Platform public routes are served at `http://localhost:3001/public`.
 
 ### 2. Get a local API key
 
-Use the internal dev CLI to provision a key for your local org:
 ```sh
 bun run saber apikey create --org <orgId>
 ```
 
-Or grab one from the local MongoDB / admin UI.
-
 ### 3. Run CLI commands against localhost
 
 ```sh
-# Auth
 saber auth login --key sk_live_... --api-url http://localhost:3001/public
-
-# Or skip storing it and use the env var every time:
-export SABER_API_KEY=sk_live_...
-
-# Run a signal
-saber signal \
-  --domain acme.com \
-  --question "Are they hiring engineers?" \
-  --api-url http://localhost:3001/public
-
-# Check credits
+saber signal --domain acme.com --question "Are they hiring?" --api-url http://localhost:3001/public
 saber credits --api-url http://localhost:3001/public
 ```
 
-You can also set the URL via env var to avoid typing it every time:
-```sh
-export SABER_API_URL=http://localhost:3001/public  # not yet wired — use --api-url flag for now
-```
+### 4. Verbose mode for debugging
 
-### 4. Build with version info
-
-```sh
-cd cli
-make build
-./bin/saber --api-url http://localhost:3001/public signal --domain acme.com --question "test"
-```
-
-### 5. Verbose mode for debugging
-
-Add `--verbose` to see full HTTP traffic:
 ```sh
 saber signal --domain acme.com --question "test" --verbose --api-url http://localhost:3001/public
 # > POST http://localhost:3001/public/v1/companies/signals
 # > Authorization: Bearer sk_live_xxx*****xxxx
 # < HTTP 201
-# < X-Ratelimit-Limit: 100
 # < X-Ratelimit-Remaining: 99
 ```
 
@@ -242,8 +195,6 @@ saber signal --domain acme.com --question "test" --verbose --api-url http://loca
 ## Development
 
 ```sh
-cd cli
-
 make build     # build binary to bin/saber
 make test      # go test ./...
 make fmt       # gofmt -w .
@@ -254,9 +205,9 @@ make install   # copy to $GOPATH/bin
 ### Project layout
 
 ```
-cli/
-├── main.go                      # Entry; ldflags inject version/commit/date
 ├── cmd/
+│   ├── saber/
+│   │   └── main.go              # Entry point; ldflags inject version/commit/date
 │   ├── root.go                  # Persistent flags: --json, --quiet, --verbose, --api-url
 │   ├── signal.go                # saber signal
 │   ├── list.go                  # saber list company / contact (all subcommands)
@@ -281,21 +232,26 @@ cli/
         └── spinner.go           # Poll spinner (suppressed when non-TTY)
 ```
 
-### Adding a new command
-
-1. Create `cmd/mycommand.go` with a `newMyCommandCmd()` function
-2. Register it in `cmd/root.go` via `root.AddCommand(newMyCommandCmd())`
-3. Add any new API types to the appropriate file under `internal/client/`
-4. Add any new format functions to `internal/format/`
-
 ### Releasing
 
-Tag with `cli/v<semver>` to trigger the release workflow:
+Tag with `v<semver>` to trigger the release workflow:
 ```sh
-git tag cli/v0.1.0
-git push origin cli/v0.1.0
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
-goreleaser builds binaries for macOS/Linux/Windows, uploads them to the GitHub release, and commits an updated Homebrew formula to `saber-app/homebrew-tap`.
+goreleaser builds binaries for macOS/Linux/Windows and uploads them to the GitHub release.
 
-Requires the `HOMEBREW_TAP_GITHUB_TOKEN` secret to be set in the repo.
+---
+
+## How it works
+
+The CLI talks directly to the Saber public API (`https://api.saber.app`), authenticated with an API key stored at `~/.saber/credentials.json`.
+
+**Signal flow** — `saber signal` calls the sync endpoint and waits for the result (use `--no-wait` for fire-and-forget).
+
+**Lists** — company and contact lists are stored server-side. Create a list once, then fetch its companies or contacts as many times as you need.
+
+**Auth** — the API key is looked up in order:
+1. `SABER_API_KEY` env var (CI-friendly; never written to disk)
+2. `~/.saber/credentials.json` (written by `saber auth login`)
