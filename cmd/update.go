@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -40,10 +41,9 @@ func newUpdateCmd() *cobra.Command {
 
 			fmt.Fprintf(os.Stdout, "Update available: v%s → v%s\n\n", current, latest)
 			if isHomebrewInstall() {
-				fmt.Fprintln(os.Stdout, "Run:  brew update && brew upgrade saber")
-			} else {
-				fmt.Fprintln(os.Stdout, "Run:  curl -sSL https://install.saber.app | sh")
+				return runBrewUpgrade()
 			}
+			fmt.Fprintln(os.Stdout, "Run:  curl -sSL https://install.saber.app | sh")
 			return nil
 		},
 	}
@@ -80,6 +80,19 @@ func fetchLatestCLIVersion() (string, error) {
 		}
 	}
 	return "", fmt.Errorf("no release found")
+}
+
+// runBrewUpgrade runs `brew update && brew upgrade saber`, streaming output to the terminal.
+func runBrewUpgrade() error {
+	for _, args := range [][]string{{"update"}, {"upgrade", "saber"}} {
+		cmd := exec.Command("brew", args...)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("brew %s: %w", strings.Join(args, " "), err)
+		}
+	}
+	return nil
 }
 
 // isHomebrewInstall reports whether the running binary lives inside a Homebrew prefix.
