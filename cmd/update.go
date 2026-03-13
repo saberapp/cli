@@ -40,7 +40,7 @@ func newUpdateCmd() *cobra.Command {
 
 			fmt.Fprintf(os.Stdout, "Update available: v%s → v%s\n\n", current, latest)
 			if isHomebrewInstall() {
-				fmt.Fprintln(os.Stdout, "Run:  brew upgrade saber")
+				fmt.Fprintln(os.Stdout, "Run:  brew update && brew upgrade saber")
 			} else {
 				fmt.Fprintln(os.Stdout, "Run:  curl -sSL https://install.saber.app | sh")
 			}
