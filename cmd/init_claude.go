@@ -173,8 +173,8 @@ revenue, prospecting, or signal-related task.
 
 ### The Saber workflow
 1. **Discover signals** — define what buying intent looks like for your ICP
-2. **Create signals** — activate company and/or contact signal tracking
-3. **Build lists** — create account and contact lists to run signals against
+2. **Build lists** — create target account and contact lists
+3. **Create signals** — activate signal tracking against your lists
 
 ### Reach for Saber when:
 - The user wants to define who to target or what signals to track

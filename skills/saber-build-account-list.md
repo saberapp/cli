@@ -43,10 +43,9 @@ Filter value formats:
 - `--country` values are ISO 3166-1 alpha-2 codes, e.g. `GB`, `DE`, `FR`, `NL`
 
 **Option B — Provide domains or company names directly**
-Ask the user to paste a list. Then add them to a named list:
+If the user has a list of domains or company names, create an empty named list and ask them to add companies via the Saber dashboard:
 ```bash
 saber list company create --name "<list name>"
-# Saber will prompt to add companies interactively, or use --domain flags
 ```
 
 **Option C — Import from HubSpot**

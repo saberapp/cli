@@ -46,7 +46,7 @@ func PrintSubscriptions(w io.Writer, subs []client.Subscription, total int) {
 		}
 		lastRun := "—"
 		if s.LastRunAt != nil {
-			lastRun = s.LastRunAt.Format("2006-01-02")
+			lastRun = s.LastRunAt.UTC().Format("2006-01-02")
 		}
 		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\n",
 			s.ID,
