@@ -15,11 +15,11 @@ func PrintSubscription(w io.Writer, sub *client.Subscription) {
 	}
 	lastRun := "—"
 	if sub.LastRunAt != nil {
-		lastRun = sub.LastRunAt.Format("2006-01-02 15:04 UTC")
+		lastRun = sub.LastRunAt.UTC().Format("2006-01-02 15:04 UTC")
 	}
 	nextRun := "—"
 	if sub.NextRunAt != nil {
-		nextRun = sub.NextRunAt.Format("2006-01-02 15:04 UTC")
+		nextRun = sub.NextRunAt.UTC().Format("2006-01-02 15:04 UTC")
 	}
 	KV(w, [][2]string{
 		{"ID:", sub.ID},
@@ -31,7 +31,7 @@ func PrintSubscription(w io.Writer, sub *client.Subscription) {
 		{"List ID:", sub.ListID},
 		{"Last run:", lastRun},
 		{"Next run:", nextRun},
-		{"Created:", sub.CreatedAt.Format("2006-01-02 15:04 UTC")},
+		{"Created:", sub.CreatedAt.UTC().Format("2006-01-02 15:04 UTC")},
 	})
 }
 

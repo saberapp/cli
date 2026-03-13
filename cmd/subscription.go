@@ -59,6 +59,9 @@ if you don't intend to run on a schedule).`,
 			if frequency == "" && cronExpr == "" {
 				return fmt.Errorf("either --frequency (daily|weekly|monthly) or --cron is required")
 			}
+			if frequency != "" && cronExpr != "" {
+				return fmt.Errorf("--frequency and --cron are mutually exclusive")
+			}
 
 			c, ctx := mustClient()
 			req := client.CreateSubscriptionRequest{
@@ -82,10 +85,10 @@ if you don't intend to run on a schedule).`,
 					return fmt.Errorf("created subscription %s but failed to start: %w", sub.ID, err)
 				}
 				if _, err := c.TriggerSubscription(ctx, sub.ID); err != nil {
-					return fmt.Errorf("created subscription %s but failed to trigger: %w", sub.ID, err)
+					return fmt.Errorf("created subscription %s but failed to trigger (subscription is now active — stop it with: saber subscription stop %s): %w", sub.ID, sub.ID, err)
 				}
 				if _, err := c.StopSubscription(ctx, sub.ID); err != nil {
-					return fmt.Errorf("created and triggered subscription %s but failed to stop schedule: %w", sub.ID, err)
+					return fmt.Errorf("created and triggered subscription %s but failed to stop schedule (stop it with: saber subscription stop %s): %w", sub.ID, sub.ID, err)
 				}
 				sub.Status = "stopped"
 			}
@@ -119,18 +122,19 @@ if you don't intend to run on a schedule).`,
 }
 
 func newSubscriptionListCmd() *cobra.Command {
-	return &cobra.Command{
+	var limit, offset int
+	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List signal subscriptions",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c, ctx := mustClient()
 
 			if jsonOutput {
-				_, err := c.ListSubscriptions(ctx, 50, 0, os.Stdout)
+				_, err := c.ListSubscriptions(ctx, limit, offset, os.Stdout)
 				return err
 			}
 
-			resp, err := c.ListSubscriptions(ctx, 50, 0, nil)
+			resp, err := c.ListSubscriptions(ctx, limit, offset, nil)
 			if err != nil {
 				return err
 			}
@@ -148,6 +152,9 @@ func newSubscriptionListCmd() *cobra.Command {
 			return nil
 		},
 	}
+	cmd.Flags().IntVar(&limit, "limit", 50, "Max results")
+	cmd.Flags().IntVar(&offset, "offset", 0, "Offset")
+	return cmd
 }
 
 func newSubscriptionGetCmd() *cobra.Command {

@@ -2,7 +2,7 @@
 name: saber-create-company-signals
 description: >
   Activate company-level signal tracking using the Saber CLI — creates signals for domains in a company list.
-version: 3
+version: 4
 ---
 
 # Saber Create Company Signals
@@ -79,20 +79,16 @@ To find a list ID:
 saber list company list
 ```
 
-### Step 2 — Create subscriptions
+### Step 2 — Create and trigger subscriptions
 
-Create one subscription per signal question:
+Create one subscription per signal question using `--run-once` to trigger immediately:
 ```bash
-saber subscription create --list <listId> --name "<name>" --question "<question>" --answer-type boolean --frequency weekly
+saber subscription create --list <listId> --name "<name>" --question "<question>" --answer-type boolean --frequency monthly --run-once
 ```
 
-### Step 3 — Trigger immediately
+This creates the subscription, runs it immediately, and stops the schedule automatically.
 
-```bash
-saber subscription trigger <subscriptionId>
-```
-
-### Step 4 — Review results
+### Step 3 — Review results
 
 ```bash
 saber subscription get <subscriptionId>

@@ -2,7 +2,7 @@
 name: saber-build-account-list
 description: >
   Build a target account list using the Saber CLI and run company signals against it.
-version: 3
+version: 4
 ---
 
 # Saber Build Account List
@@ -49,11 +49,12 @@ saber list company create --name "<list name>"
 # Saber will prompt to add companies interactively, or use --domain flags
 ```
 
-**Option C — Import from a CSV or CRM**
-If the user has an export from LinkedIn, Salesforce, or HubSpot:
+**Option C — Import from HubSpot**
+If the user wants to pull companies from HubSpot using a property filter:
 ```bash
-saber list company import --name "<list name>" --file <path-to-csv>
+saber list company import --name "<list name>" --property <property> --operator EQ --value "<value>"
 ```
+Example: `--property industry --operator EQ --value "Software"`
 
 ### Step 3 — Review and confirm
 
@@ -67,7 +68,7 @@ If approved signals are available in conversation context, offer to run them aga
 
 ```bash
 saber list company create --name "<name>" [--industry] [--country] [--size]
-saber list company import --name "<name>" --file <path>
+saber list company import --name "<name>" --property <property> --operator EQ --value "<value>"
 saber list company get <listId>
 saber list company list
 ```

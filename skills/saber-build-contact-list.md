@@ -2,7 +2,7 @@
 name: saber-build-contact-list
 description: >
   Build a target contact list using the Saber CLI and run contact signals against it.
-version: 2
+version: 3
 ---
 
 # Saber Build Contact List
@@ -31,23 +31,18 @@ Ask the user to confirm or adjust before proceeding.
 Ask the user how they want to supply contacts:
 
 **Option A — Let Saber identify contacts (recommended)**
-Use the Saber CLI to create a list filtered by title and sourced from an account list:
+Use the Saber CLI to create a list filtered by title, sourced from company LinkedIn URLs.
+If a target account list exists, get the company LinkedIn URLs from it first (`saber list company companies <listId>`), then:
 ```bash
-saber list contact create --name "<list name>" --title "<title>" --account-list <listId>
+saber list contact create --name "<list name>" \
+  --company-linkedin <linkedin-url> \
+  --company-linkedin <linkedin-url> \
+  --title "<title>"
 ```
+`--company-linkedin` and `--title` are both repeatable. `--company-linkedin` is required.
 
 **Option B — Provide contacts directly**
-Ask the user to paste names, emails, or LinkedIn URLs:
-```bash
-saber list contact create --name "<list name>"
-# Add contacts interactively or via --email flags
-```
-
-**Option C — Import from a CSV or CRM**
-If the user has an export from LinkedIn Sales Navigator, Salesforce, or HubSpot:
-```bash
-saber list contact import --name "<list name>" --file <path-to-csv>
-```
+If the user has specific contacts in mind, ask for their LinkedIn URLs or emails and add them manually via the Saber dashboard.
 
 ### Step 3 — Review and confirm
 
@@ -64,8 +59,7 @@ After signals complete, present results ranked by intent so the user can sequenc
 ## Key commands
 
 ```bash
-saber list contact create --name "<name>" [--title] [--account-list]
-saber list contact import --name "<name>" --file <path>
+saber list contact create --name "<name>" --company-linkedin <url> [--title] [--keyword] [--country]
 saber list contact get <listId>
 saber list contact list
 ```

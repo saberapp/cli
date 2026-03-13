@@ -13,6 +13,7 @@ import (
 	"github.com/saberapp/cli/internal/config"
 	"github.com/saberapp/cli/skills"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 type skillDef struct {
@@ -96,9 +97,7 @@ func generateCommandList(root *cobra.Command) string {
 					sb.WriteString(" ")
 					sb.WriteString(strings.Join(parts[1:], " "))
 				}
-				if sub.HasAvailableLocalFlags() {
-					sb.WriteString(" [--flags]")
-				}
+				sb.WriteString(formatFlags(sub))
 				sb.WriteString("\n")
 			}
 
@@ -109,6 +108,34 @@ func generateCommandList(root *cobra.Command) string {
 	}
 	visit(root, "saber")
 	return strings.TrimRight(sb.String(), "\n")
+}
+
+// formatFlags returns a compact flag summary for a command: required flags shown
+// explicitly (--name <name>), optional flags collapsed to [--options].
+func formatFlags(cmd *cobra.Command) string {
+	var required []string
+	hasOptional := false
+	cmd.Flags().VisitAll(func(f *pflag.Flag) {
+		if f.Hidden {
+			return
+		}
+		if f.Annotations != nil {
+			if _, ok := f.Annotations[cobra.BashCompOneRequiredFlag]; ok {
+				required = append(required, "--"+f.Name+" <"+f.Name+">")
+				return
+			}
+		}
+		hasOptional = true
+	})
+	var parts []string
+	parts = append(parts, required...)
+	if hasOptional {
+		parts = append(parts, "[--options]")
+	}
+	if len(parts) == 0 {
+		return ""
+	}
+	return " " + strings.Join(parts, " ")
 }
 
 // fetchConnectorSection tries to fetch connectors from the Saber API.
@@ -122,7 +149,7 @@ func fetchConnectorSection() string {
 	c := client.New(apiURL, key, cliVersion, false, os.Stderr)
 	resp, err := c.ListConnectors(context.Background(), nil)
 	if err != nil {
-		return "_Run `saber auth login` to populate connector status._"
+		return "_Could not fetch connector status (API error). Run `saber connectors list` to check manually._"
 	}
 
 	if len(resp.Connectors) == 0 {
