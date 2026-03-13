@@ -11,6 +11,7 @@ var (
 	jsonOutput bool
 	quiet      bool
 	verbose    bool
+	yes        bool
 	apiURL     string
 	cliVersion string
 )
@@ -31,6 +32,7 @@ Get an API key at: https://ai.saber.app → Settings → API Keys`,
 	root.PersistentFlags().BoolVar(&jsonOutput, "json", false, "Output as JSON")
 	root.PersistentFlags().BoolVarP(&quiet, "quiet", "Q", false, "Suppress non-error output")
 	root.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose HTTP logging (stderr)")
+	root.PersistentFlags().BoolVarP(&yes, "yes", "y", false, "Skip credit confirmation prompt")
 	root.PersistentFlags().StringVar(&apiURL, "api-url", "https://api.saber.app", "Base API URL")
 
 	root.SetErr(os.Stderr)

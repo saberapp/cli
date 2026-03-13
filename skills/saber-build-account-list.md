@@ -2,7 +2,7 @@
 name: saber-build-account-list
 description: >
   Build a target account list using the Saber CLI and run company signals against it.
-version: 4
+version: 5
 ---
 
 # Saber Build Account List
@@ -59,9 +59,37 @@ Example: `--property industry --operator EQ --value "Software"`
 
 Show the user the list summary (name, company count) and ask if they want to adjust before activating signals.
 
-### Step 4 — Run signals (optional)
+### Step 4 — Sample run (optional but recommended)
 
-If approved signals are available in conversation context, offer to run them against the list now using `/saber-create-company-signals`.
+Before running signals across the whole list, offer to test a sample of the first 10 companies so the user can validate signal quality without spending credits on the full list.
+
+Get the first 10 domains from the list:
+```bash
+saber list company companies <listId> --limit 10
+```
+
+For each signal question, fire signals with `--no-wait` so they all run in parallel:
+```bash
+saber signal --domain <domain> --question "<question>" --answer-type boolean --no-wait
+# repeat for each domain — collect the signal IDs printed
+```
+
+Then retrieve results:
+```bash
+saber signal get <signalId>
+# repeat for each signal ID
+```
+
+Present the 10 results to the user and ask:
+- Do the signals look accurate?
+- Are there any false positives or unexpected answers?
+- Do they want to proceed with the full list?
+
+Only proceed to Step 5 once the user confirms the sample looks good.
+
+### Step 5 — Run signals on the full list (optional)
+
+If approved signals are available in conversation context, offer to run them against the full list now using `/saber-create-company-signals`.
 
 ## Key commands
 

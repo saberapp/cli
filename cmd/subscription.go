@@ -81,6 +81,9 @@ if you don't intend to run on a schedule).`,
 			}
 
 			if runOnce {
+				if err := confirmCreditAction(c, ctx); err != nil {
+					return err
+				}
 				if _, err := c.StartSubscription(ctx, sub.ID); err != nil {
 					return fmt.Errorf("created subscription %s but failed to start: %w", sub.ID, err)
 				}
@@ -228,6 +231,9 @@ func newSubscriptionTriggerCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c, ctx := mustClient()
+			if err := confirmCreditAction(c, ctx); err != nil {
+				return err
+			}
 			sub, err := c.TriggerSubscription(ctx, args[0])
 			if err != nil {
 				return err

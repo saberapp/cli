@@ -2,7 +2,7 @@
 name: saber-build-contact-list
 description: >
   Build a target contact list using the Saber CLI and run contact signals against it.
-version: 3
+version: 4
 ---
 
 # Saber Build Contact List
@@ -48,11 +48,35 @@ If the user has specific contacts in mind, ask for their LinkedIn URLs or emails
 
 Show the list summary and ask the user to confirm before activating signals.
 
-### Step 4 — Run signals (optional)
+### Step 4 — Sample run (optional but recommended)
+
+Before running signals across the whole list, offer to test a small sample first so the user can validate signal quality without spending credits on every contact.
+
+Ask the user to pick 3–5 contacts to test — ideally ones they already know something about, so they can judge whether the signal results are accurate. Get their LinkedIn profile URLs from the list in the Saber dashboard or from conversation context.
+
+For each contact and each signal question:
+```bash
+saber signal --profile <linkedin-url> --question "<question>" --answer-type boolean --no-wait
+# collect signal IDs
+```
+
+Retrieve and review results:
+```bash
+saber signal get <signalId>
+```
+
+Present results and ask:
+- Do the signals look accurate for these contacts?
+- Any false positives or unexpected answers?
+- Do they want to proceed with the rest of the list?
+
+Only continue to Step 5 once the user confirms the sample looks good.
+
+### Step 5 — Run signals on the full list (optional)
 
 If approved contact signals are available in conversation context, offer to run them using `/saber-create-contact-signals`.
 
-### Step 5 — Prioritize
+### Step 6 — Prioritize
 
 After signals complete, present results ranked by intent so the user can sequence outreach.
 
