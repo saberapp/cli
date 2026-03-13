@@ -99,6 +99,9 @@ func newSignalGetCmd() *cobra.Command {
 }
 
 func signalCompany(c *client.Client, ctx context.Context, domain, question, answerType string, forceRefresh bool, webhook string, noWait bool, maxWait int) error {
+	if err := confirmCreditAction(c, ctx); err != nil {
+		return err
+	}
 	req := client.CreateCompanySignalRequest{
 		Domain:       domain,
 		Question:     question,
@@ -122,6 +125,9 @@ func signalCompany(c *client.Client, ctx context.Context, domain, question, answ
 }
 
 func signalContact(c *client.Client, ctx context.Context, profile, question, answerType string, forceRefresh bool, webhook string, noWait bool, maxWait int) error {
+	if err := confirmCreditAction(c, ctx); err != nil {
+		return err
+	}
 	req := client.CreateContactSignalRequest{
 		ContactProfileURL: profile,
 		Question:          question,
