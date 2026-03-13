@@ -28,7 +28,9 @@ func confirmCreditAction(c *client.Client, ctx context.Context) error {
 	}
 	fmt.Fprint(os.Stderr, msg)
 	var answer string
-	fmt.Fscan(os.Stdin, &answer)
+	if _, err := fmt.Fscan(os.Stdin, &answer); err != nil && err.Error() != "EOF" {
+		return fmt.Errorf("read input: %w", err)
+	}
 	if strings.ToLower(strings.TrimSpace(answer)) != "y" {
 		return fmt.Errorf("aborted")
 	}
