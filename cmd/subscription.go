@@ -33,6 +33,7 @@ func newSubscriptionCreateCmd() *cobra.Command {
 		cronExpr   string
 		timezone   string
 		templateID string
+		runOnce    bool
 	)
 	cmd := &cobra.Command{
 		Use:   "create",
@@ -42,15 +43,16 @@ func newSubscriptionCreateCmd() *cobra.Command {
 The subscription is created in a stopped state. Use 'saber subscription start <id>'
 to activate the schedule, or 'saber subscription trigger <id>' to run it immediately.
 
+Use --run-once to trigger immediately and stop the schedule after — useful for
+one-off runs without committing to a recurring schedule.
+
 Either --template or --name + --question is required.
-Either --frequency or --cron is required.`,
+Either --frequency or --cron is required (use --frequency monthly with --run-once
+if you don't intend to run on a schedule).`,
 		Example: `  saber subscription create --list <listId> --name "Hiring signal" --question "Is this company actively hiring in HR?" --frequency weekly
-  saber subscription create --list <listId> --template <templateId> --frequency daily
-  saber subscription create --list <listId> --name "Custom schedule" --question "Opening new locations?" --cron "0 9 * * 1"`,
+  saber subscription create --list <listId> --name "One-off check" --question "Opening new locations?" --frequency monthly --run-once
+  saber subscription create --list <listId> --template <templateId> --frequency daily`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if listID == "" {
-				return fmt.Errorf("--list is required")
-			}
 			if templateID == "" && (name == "" || question == "") {
 				return fmt.Errorf("either --template or both --name and --question are required")
 			}
@@ -70,20 +72,32 @@ Either --frequency or --cron is required.`,
 				ListID:           listID,
 			}
 
-			if jsonOutput {
-				_, err := c.CreateSubscription(ctx, req, os.Stdout)
-				return err
-			}
-
 			sub, err := c.CreateSubscription(ctx, req, nil)
 			if err != nil {
 				return err
 			}
 
+			if runOnce {
+				if _, err := c.TriggerSubscription(ctx, sub.ID); err != nil {
+					return fmt.Errorf("created subscription %s but failed to trigger: %w", sub.ID, err)
+				}
+				if _, err := c.StopSubscription(ctx, sub.ID); err != nil {
+					return fmt.Errorf("created and triggered subscription %s but failed to stop schedule: %w", sub.ID, err)
+				}
+				sub.Status = "stopped"
+			}
+
+			if jsonOutput {
+				_, err := c.GetSubscription(ctx, sub.ID, os.Stdout)
+				return err
+			}
+
 			if !quiet {
 				format.PrintSubscription(os.Stdout, sub)
-				fmt.Fprintf(os.Stdout, "\nRun immediately:  saber subscription trigger %s\n", sub.ID)
-				fmt.Fprintf(os.Stdout, "Activate schedule: saber subscription start %s\n", sub.ID)
+				if !runOnce {
+					fmt.Fprintf(os.Stdout, "\nRun immediately:   saber subscription trigger %s\n", sub.ID)
+					fmt.Fprintf(os.Stdout, "Activate schedule: saber subscription start %s\n", sub.ID)
+				}
 			}
 			return nil
 		},
@@ -96,6 +110,7 @@ Either --frequency or --cron is required.`,
 	cmd.Flags().StringVar(&cronExpr, "cron", "", "Custom cron expression, e.g. \"0 9 * * 1\" (mutually exclusive with --frequency)")
 	cmd.Flags().StringVar(&timezone, "timezone", "UTC", "IANA timezone for scheduling, e.g. Europe/Amsterdam")
 	cmd.Flags().StringVar(&templateID, "template", "", "Existing signal template ID (alternative to --name + --question)")
+	cmd.Flags().BoolVar(&runOnce, "run-once", false, "Trigger immediately and stop the schedule — for one-off runs")
 	_ = cmd.MarkFlagRequired("list")
 	return cmd
 }

@@ -20,7 +20,22 @@ Use this skill to run company-level signal research using the Saber CLI.
 
 For running a signal across all companies in a list, use signal subscriptions.
 
-**Step 1 — Create a subscription** (created in stopped state):
+**Option 1 — Run once (recommended for getting started)**
+
+Use `--run-once` to trigger immediately and stop the schedule automatically:
+```bash
+saber subscription create \
+  --list <listId> \
+  --name "<signal name>" \
+  --question "<signal question>" \
+  --answer-type boolean \
+  --frequency monthly \
+  --run-once
+```
+
+**Option 2 — Recurring schedule**
+
+Omit `--run-once` to keep the subscription active on a schedule:
 ```bash
 saber subscription create \
   --list <listId> \
@@ -30,17 +45,12 @@ saber subscription create \
   --frequency weekly
 ```
 
-**Step 2 — Run it immediately** (or let the schedule activate it):
+Then trigger manually when needed:
 ```bash
 saber subscription trigger <subscriptionId>
 ```
 
-**Step 3 — Check status**:
-```bash
-saber subscription get <subscriptionId>
-```
-
-Create one subscription per signal question. Use `--frequency daily`, `weekly`, or `monthly` — or provide a custom cron expression with `--cron`.
+Create one subscription per signal question.
 
 ### Mode B — Spot-check a specific company
 
