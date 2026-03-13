@@ -2,63 +2,102 @@
 name: saber-create-company-signals
 description: >
   Activate company-level signal tracking using the Saber CLI — creates signals for domains in a company list.
-version: 2
+version: 3
 ---
 
 # Saber Create Company Signals
 
-Use this skill to activate company-level signal tracking against a list of target accounts in Saber.
+Use this skill to run company-level signal research using the Saber CLI.
 
 ## Prerequisites
 
 - Approved company signal definitions are available in conversation context (run `/saber-signal-discovery` first if not)
-- A target account list exists in Saber (run `/saber-build-account-list` first if not)
 - Saber CLI is available (`saber --help` works)
 
-## Workflow
+## Two modes
 
-### Step 1 — Confirm signals and list
+### Mode A — Run signals against a full list (signal subscriptions)
 
-From conversation context, confirm:
-- Which company signals are approved (the questions to run)
-- Which account list to run them against (get the list ID if needed: `saber list company list`)
+For running a signal across all companies in a list, use signal subscriptions.
 
-### Step 2 — Activate signals
-
-Run each approved company signal against the account list:
-
+**Step 1 — Create a subscription** (created in stopped state):
 ```bash
-saber signal company create -q "<signal question>" --list <listId>
+saber subscription create \
+  --list <listId> \
+  --name "<signal name>" \
+  --question "<signal question>" \
+  --answer-type boolean \
+  --frequency weekly
 ```
 
-Each call creates a signal subscription that runs the question against every company in the list.
+**Step 2 — Run it immediately** (or let the schedule activate it):
+```bash
+saber subscription trigger <subscriptionId>
+```
 
-To check available lists:
+**Step 3 — Check status**:
+```bash
+saber subscription get <subscriptionId>
+```
+
+Create one subscription per signal question. Use `--frequency daily`, `weekly`, or `monthly` — or provide a custom cron expression with `--cron`.
+
+### Mode B — Spot-check a specific company
+
+Use `saber signal` to run a question against a single domain:
+
+```bash
+saber signal --domain <domain> --question "<signal question>" --answer-type boolean
+```
+
+Use `--no-wait` to fire multiple signals without waiting for each result:
+```bash
+saber signal --domain <domain> --question "<question>" --no-wait
+saber signal get <signalId>
+```
+
+## Workflow (list mode)
+
+### Step 1 — Confirm signals and list ID
+
+From conversation context, confirm:
+- The approved signal questions to activate
+- The account list to run them against
+
+To find a list ID:
 ```bash
 saber list company list
 ```
 
-### Step 3 — Check signal status
+### Step 2 — Create subscriptions
 
+Create one subscription per signal question:
 ```bash
-saber signal company get <signalId>
+saber subscription create --list <listId> --name "<name>" --question "<question>" --answer-type boolean --frequency weekly
 ```
 
-Signals may be `pending`, `processing`, or `complete`. Once complete, results are available per company.
+### Step 3 — Trigger immediately
+
+```bash
+saber subscription trigger <subscriptionId>
+```
 
 ### Step 4 — Review results
 
 ```bash
-saber signal company results <signalId>
+saber subscription get <subscriptionId>
 ```
 
-Present the results to the user, highlighting companies where the signal fired positively — these are your highest-priority accounts.
+When complete, present results to the user. Companies where signals fired positively are highest priority for outreach.
 
 ## Key commands
 
 ```bash
-saber signal company create -q "<question>" --list <listId>
-saber signal company get <signalId>
-saber signal company results <signalId>
+saber subscription create --list <listId> --name "<name>" --question "<question>" [--answer-type] [--frequency daily|weekly|monthly] [--cron] [--timezone]
+saber subscription trigger <subscriptionId>
+saber subscription get <subscriptionId>
+saber subscription list
+saber subscription start <subscriptionId>
+saber subscription stop <subscriptionId>
+saber signal --domain <domain> --question "<question>" [--answer-type] [--no-wait]
 saber list company list
-```
