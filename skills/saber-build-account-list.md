@@ -2,7 +2,7 @@
 name: saber-build-account-list
 description: >
   Build a target account list using the Saber CLI and run company signals against it.
-version: 2
+version: 3
 ---
 
 # Saber Build Account List
@@ -36,6 +36,11 @@ Use the Saber CLI to create a list with filter criteria:
 saber list company create --name "<list name>" --industry "<industry>" --country "<country code>" --size "<size range>"
 ```
 Saber will populate the list with matching companies from its database.
+
+Filter value formats:
+- `--industry` values are **lowercase**, e.g. `restaurants`, `hospitality`, `food & beverages`, `hotels and motels`. Use `&` not `and`.
+- `--size` values use K notation: `1-10`, `11-50`, `51-200`, `201-500`, `501-1K`, `1K-5K`, `5K-10K`, `10K+`
+- `--country` values are ISO 3166-1 alpha-2 codes, e.g. `GB`, `DE`, `FR`, `NL`
 
 **Option B — Provide domains or company names directly**
 Ask the user to paste a list. Then add them to a named list:
