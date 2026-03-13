@@ -10,18 +10,18 @@ import (
 
 // Subscription represents a signal subscription resource.
 type Subscription struct {
-	ID               string     `json:"id"`
-	Name             string     `json:"name"`
-	Question         string     `json:"question"`
-	AnswerType       string     `json:"answerType"`
-	Frequency        string     `json:"frequency"`
-	CronExpression   string     `json:"cronExpression"`
-	Timezone         string     `json:"timezone"`
-	Status           string     `json:"status"` // active, stopped
-	ListID           string     `json:"listId"`
-	LastRunAt        *time.Time `json:"lastRunAt"`
-	NextRunAt        *time.Time `json:"nextRunAt"`
-	CreatedAt        time.Time  `json:"createdAt"`
+	ID             string     `json:"id"`
+	Name           string     `json:"name"`
+	Question       string     `json:"question"`
+	AnswerType     string     `json:"answerType"`
+	Frequency      string     `json:"frequency"`
+	CronExpression string     `json:"cronExpression"`
+	Timezone       string     `json:"timezone"`
+	Status         string     `json:"status"` // active, stopped
+	ListID         string     `json:"listId"`
+	LastRunAt      *time.Time `json:"lastRunAt"`
+	NextRunAt      *time.Time `json:"nextRunAt"`
+	CreatedAt      time.Time  `json:"createdAt"`
 }
 
 // SubscriptionsResponse wraps a paginated list of subscriptions.
