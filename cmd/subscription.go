@@ -78,6 +78,9 @@ if you don't intend to run on a schedule).`,
 			}
 
 			if runOnce {
+				if _, err := c.StartSubscription(ctx, sub.ID); err != nil {
+					return fmt.Errorf("created subscription %s but failed to start: %w", sub.ID, err)
+				}
 				if _, err := c.TriggerSubscription(ctx, sub.ID); err != nil {
 					return fmt.Errorf("created subscription %s but failed to trigger: %w", sub.ID, err)
 				}
