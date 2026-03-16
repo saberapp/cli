@@ -229,9 +229,9 @@ func section(w io.Writer, title string) {
 }
 
 func entry(w io.Writer, usage, desc string) {
-	fmt.Fprintf(w, "  %-52s \x1b[2m%s\x1b[0m\n", usage, desc)
+	fmt.Fprintf(w, "  %-66s \x1b[2m%s\x1b[0m\n", usage, desc)
 }
 
 func flag(w io.Writer, name, desc string) {
-	fmt.Fprintf(w, "    %-48s \x1b[2m%s\x1b[0m\n", name, desc)
+	fmt.Fprintf(w, "    %-64s \x1b[2m%s\x1b[0m\n", name, desc)
 }
