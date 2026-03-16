@@ -2,7 +2,7 @@
 name: saber-signal-discovery
 description: >
   Define buying signals that match your ICP — start here before creating signals or building lists.
-version: 3
+version: 4
 ---
 
 # Saber Signal Discovery
@@ -15,13 +15,19 @@ Produce a clear ICP definition and a set of approved signal definitions in conve
 
 ## Workflow
 
-### Step 1 — Establish context
+### Step 1 — Load organisation context
 
-Ask two questions up front:
-1. **Where do you work, and what do you sell?** (company name, what the product does)
-2. **Who do you sell to?** (the ICP — industry, company size, geography, buyer title)
+Before asking anything, run: `saber org get`
 
-Once you have those answers, ask follow-up questions to fill in any gaps:
+- If the profile contains name, website, and description fields → use them directly, skip asking.
+- If the profile is empty or missing key fields → ask the user to fill in the gaps, then run
+  `saber org update --name "..." --general "..." --products "..." --use-cases "..." --value-prop "..."`
+  to persist the context for future sessions.
+
+Do not ask questions that are already answered by the org profile.
+
+Once org context is established, ask follow-up questions to fill in any remaining gaps:
+- **Who do you sell to?** (the ICP — industry, company size, geography, buyer title)
 - **Who is the buyer?** (title, seniority, department — e.g. "VP Sales", "Head of RevOps")
 - **What makes a company ready to buy?** (triggers — e.g. new sales hire, funding round, tech migration)
 

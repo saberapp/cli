@@ -45,7 +45,8 @@ func newInitClaudeCmd() *cobra.Command {
 func runInitClaude(cmd *cobra.Command, _ []string) error {
 	commandList := generateCommandList(cmd.Root())
 	connectorSection := fetchConnectorSection()
-	block := buildSaberBlock(commandList, connectorSection)
+	orgSection := fetchOrgSection()
+	block := buildSaberBlock(commandList, connectorSection, orgSection)
 
 	claudeMDStatus, err := injectClaudeMD(block)
 	if err != nil {
@@ -138,6 +139,46 @@ func formatFlags(cmd *cobra.Command) string {
 	return " " + strings.Join(parts, " ")
 }
 
+// fetchOrgSection tries to fetch the organisation profile from the Saber API.
+// Returns a placeholder string if not authenticated or on any error.
+func fetchOrgSection() string {
+	key, err := config.RequireAPIKey()
+	if err != nil {
+		return "_Run `saber auth login` to populate organisation context._"
+	}
+
+	c := client.New(apiURL, key, cliVersion, false, os.Stderr)
+	org, err := c.GetOrganisation(context.Background(), nil)
+	if err != nil {
+		return "_Could not fetch organisation profile (API error). Run `saber org get` to check manually._"
+	}
+
+	if org.Name == "" && org.Website == "" && org.Description.General == "" {
+		return "_No organisation profile set. Run `saber org update` to add context._"
+	}
+
+	var sb strings.Builder
+	if org.Name != "" {
+		fmt.Fprintf(&sb, "**Name:** %s\n", org.Name)
+	}
+	if org.Website != "" {
+		fmt.Fprintf(&sb, "**Website:** %s\n", org.Website)
+	}
+	if org.Description.General != "" {
+		fmt.Fprintf(&sb, "**General:** %s\n", org.Description.General)
+	}
+	if org.Description.Products != "" {
+		fmt.Fprintf(&sb, "**Products:** %s\n", org.Description.Products)
+	}
+	if org.Description.UseCases != "" {
+		fmt.Fprintf(&sb, "**Use cases:** %s\n", org.Description.UseCases)
+	}
+	if org.Description.ValueProp != "" {
+		fmt.Fprintf(&sb, "**Value prop:** %s\n", org.Description.ValueProp)
+	}
+	return strings.TrimRight(sb.String(), "\n")
+}
+
 // fetchConnectorSection tries to fetch connectors from the Saber API.
 // Returns a placeholder string if not authenticated or on any error.
 func fetchConnectorSection() string {
@@ -164,12 +205,15 @@ func fetchConnectorSection() string {
 }
 
 // buildSaberBlock builds the full <!-- saber --> ... <!-- /saber --> block.
-func buildSaberBlock(commandList, connectorSection string) string {
+func buildSaberBlock(commandList, connectorSection, orgSection string) string {
 	return `<!-- saber -->
 ## Saber GTM Intelligence
 
 The Saber CLI is available in this project. Use it proactively for any
 revenue, prospecting, or signal-related task.
+
+### Your organisation
+` + orgSection + `
 
 ### The Saber workflow
 1. **Discover signals** — define what buying intent looks like for your ICP
