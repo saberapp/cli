@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -38,7 +39,39 @@ Examples:
 	}
 }
 
+func printLogo(w io.Writer) {
+	cwd, _ := os.Getwd()
+	if home, err := os.UserHomeDir(); err == nil && strings.HasPrefix(cwd, home) {
+		cwd = "~" + cwd[len(home):]
+	}
+
+	const (
+		bold  = "\x1b[1m"
+		dim   = "\x1b[2m"
+		reset = "\x1b[0m"
+	)
+
+	versionLabel := bold + "Saber CLI" + reset
+	if cliVersion != "" {
+		versionLabel += dim + " " + cliVersion + reset
+	}
+
+	lines := [4]string{"◢██◢██", "██◤██◤", "◢██◢██", "██◤██◤"}
+	info := [4]string{
+		versionLabel,
+		dim + "Saber Team" + reset,
+		dim + cwd + reset,
+		dim + "Visit developers.saber.app for more guides and support" + reset,
+	}
+
+	for i, line := range lines {
+		fmt.Fprintf(w, "%s   %s\n", line, info[i])
+	}
+	fmt.Fprintln(w)
+}
+
 func printCheatSheet(w io.Writer) {
+	printLogo(w)
 	fmt.Fprintln(w, "Saber CLI — command reference")
 	fmt.Fprintln(w)
 

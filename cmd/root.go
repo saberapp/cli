@@ -27,6 +27,9 @@ lists, check credits, and more — all from your terminal.
 Get an API key at: https://ai.saber.app → Settings → API Keys`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
+		Run: func(cmd *cobra.Command, args []string) {
+			printCheatSheet(os.Stdout)
+		},
 	}
 
 	root.PersistentFlags().BoolVar(&jsonOutput, "json", false, "Output as JSON")
