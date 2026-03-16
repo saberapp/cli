@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/saberapp/cli/internal/client"
 	"github.com/saberapp/cli/internal/config"
@@ -44,8 +45,14 @@ func newInitClaudeCmd() *cobra.Command {
 
 func runInitClaude(cmd *cobra.Command, _ []string) error {
 	commandList := generateCommandList(cmd.Root())
-	connectorSection := fetchConnectorSection()
-	orgSection := fetchOrgSection()
+
+	var connectorSection, orgSection string
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() { defer wg.Done(); connectorSection = fetchConnectorSection() }()
+	go func() { defer wg.Done(); orgSection = fetchOrgSection() }()
+	wg.Wait()
+
 	block := buildSaberBlock(commandList, connectorSection, orgSection)
 
 	claudeMDStatus, err := injectClaudeMD(block)
@@ -153,7 +160,8 @@ func fetchOrgSection() string {
 		return "_Could not fetch organisation profile (API error). Run `saber org get` to check manually._"
 	}
 
-	if org.Name == "" && org.Website == "" && org.Description.General == "" {
+	if org.Name == "" && org.Website == "" && org.Description.General == "" &&
+		org.Description.Products == "" && org.Description.UseCases == "" && org.Description.ValueProp == "" {
 		return "_No organisation profile set. Run `saber org update` to add context._"
 	}
 

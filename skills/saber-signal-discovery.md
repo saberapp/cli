@@ -26,10 +26,10 @@ Before asking anything, run: `saber org get`
 
 Do not ask questions that are already answered by the org profile.
 
-Once org context is established, ask follow-up questions to fill in any remaining gaps:
-- **Who do you sell to?** (the ICP — industry, company size, geography, buyer title)
-- **Who is the buyer?** (title, seniority, department — e.g. "VP Sales", "Head of RevOps")
-- **What makes a company ready to buy?** (triggers — e.g. new sales hire, funding round, tech migration)
+Once org context is established, you still need ICP specifics — ask these in order:
+1. **Who do you sell to?** (industry, company size, geography, buyer title) — required to define the ICP
+2. **Who is the buyer?** (title, seniority, department — e.g. "VP Sales", "Head of RevOps")
+3. **What makes a company ready to buy?** (triggers — e.g. new sales hire, funding round, tech migration)
 
 Keep this conversational — don't dump all questions at once.
 

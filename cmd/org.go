@@ -52,6 +52,13 @@ func newOrgUpdateCmd() *cobra.Command {
 		Use:   "update",
 		Short: "Update the organisation profile",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			anyChanged := cmd.Flags().Changed("name") || cmd.Flags().Changed("website") ||
+				cmd.Flags().Changed("general") || cmd.Flags().Changed("products") ||
+				cmd.Flags().Changed("use-cases") || cmd.Flags().Changed("value-prop")
+			if !anyChanged {
+				return fmt.Errorf("at least one flag must be provided; see --help")
+			}
+
 			c, ctx := mustClient()
 
 			req := client.UpdateOrganisationRequest{}
@@ -68,20 +75,26 @@ func newOrgUpdateCmd() *cobra.Command {
 				cmd.Flags().Changed("value-prop")
 
 			if descChanged {
-				desc := &client.OrganisationDescription{}
+				// Fetch the current profile first so we send a fully-merged description
+				// object — avoids clearing sibling fields the user didn't touch.
+				current, err := c.GetOrganisation(ctx, nil)
+				if err != nil {
+					return fmt.Errorf("could not fetch current org profile to merge description: %w", err)
+				}
+				merged := current.Description
 				if cmd.Flags().Changed("general") {
-					desc.General = general
+					merged.General = general
 				}
 				if cmd.Flags().Changed("products") {
-					desc.Products = products
+					merged.Products = products
 				}
 				if cmd.Flags().Changed("use-cases") {
-					desc.UseCases = useCases
+					merged.UseCases = useCases
 				}
 				if cmd.Flags().Changed("value-prop") {
-					desc.ValueProp = valueProp
+					merged.ValueProp = valueProp
 				}
-				req.Description = desc
+				req.Description = &merged
 			}
 
 			if jsonOutput {
@@ -114,8 +127,12 @@ func newOrgUpdateCmd() *cobra.Command {
 }
 
 func printOrg(o *client.Organisation) {
-	fmt.Fprintf(os.Stdout, "Name:       %s\n", o.Name)
-	fmt.Fprintf(os.Stdout, "Website:    %s\n", o.Website)
+	if o.Name != "" {
+		fmt.Fprintf(os.Stdout, "Name:       %s\n", o.Name)
+	}
+	if o.Website != "" {
+		fmt.Fprintf(os.Stdout, "Website:    %s\n", o.Website)
+	}
 	if o.Description.General != "" {
 		fmt.Fprintf(os.Stdout, "General:    %s\n", o.Description.General)
 	}
