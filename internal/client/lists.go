@@ -118,6 +118,13 @@ type ImportCompanyListRequest struct {
 	Source ImportCompanyListSource `json:"source"`
 }
 
+// ExportCompanyListRequest is the optional body for POST /v1/companies/lists/:id/export.
+// All fields are optional.
+type ExportCompanyListRequest struct {
+	Fields            []string `json:"fields,omitempty"`
+	SignalTemplateIDs []string `json:"signalTemplateIds,omitempty"`
+}
+
 func (c *Client) CreateCompanyList(ctx context.Context, req CreateCompanyListRequest, rawDst io.Writer) (*CompanyList, error) {
 	if rawDst != nil {
 		return nil, c.Post(ctx, "/v1/companies/lists", req, nil, rawDst)
@@ -179,6 +186,12 @@ func (c *Client) GetCompaniesInList(ctx context.Context, id string, limit, offse
 		return nil, err
 	}
 	return &resp, nil
+}
+
+// ExportCompanyList streams a CSV export of the list to dst.
+// The request body is optional — pass a zero value to export with defaults.
+func (c *Client) ExportCompanyList(ctx context.Context, id string, req ExportCompanyListRequest, dst io.Writer) error {
+	return c.Post(ctx, "/v1/companies/lists/"+url.PathEscape(id)+"/export", req, nil, dst)
 }
 
 func (c *Client) SearchCompanies(ctx context.Context, req CompanySearchRequest, rawDst io.Writer) (*CompanySearchResponse, error) {
