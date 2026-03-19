@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/saberapp/cli/internal/client"
@@ -33,6 +34,7 @@ func newListCompanyCmd() *cobra.Command {
 	company.AddCommand(newListCompanyDeleteCmd())
 	company.AddCommand(newListCompanyCompaniesCmd())
 	company.AddCommand(newListCompanyImportCmd())
+	company.AddCommand(newListCompanyExportCmd())
 	return company
 }
 
@@ -265,6 +267,63 @@ func newListCompanyImportCmd() *cobra.Command {
 	cmd.Flags().StringVar(&value, "value", "", "Filter value")
 	_ = cmd.MarkFlagRequired("name")
 	_ = cmd.MarkFlagRequired("property")
+	return cmd
+}
+
+func newListCompanyExportCmd() *cobra.Command {
+	var (
+		outputFile        string
+		fields            []string
+		signalTemplateIDs []string
+	)
+
+	cmd := &cobra.Command{
+		Use:   "export <listId>",
+		Short: "Export a company list as CSV",
+		Long: `Export all companies in a list as a CSV file.
+
+Optionally include specific fields and signal data columns.
+By default the CSV is written to stdout; use --output to write to a file.`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			listID := args[0]
+			c, ctx := mustClient()
+
+			req := client.ExportCompanyListRequest{
+				Fields:            fields,
+				SignalTemplateIDs: signalTemplateIDs,
+			}
+
+			var dst io.Writer
+			if outputFile != "" {
+				f, err := os.Create(outputFile)
+				if err != nil {
+					return fmt.Errorf("create output file: %w", err)
+				}
+				defer func() { _ = f.Close() }()
+				dst = f
+				if !quiet {
+					fmt.Fprintf(os.Stderr, "Exporting list %s to %s...\n", listID, outputFile)
+				}
+			} else {
+				dst = os.Stdout
+			}
+
+			if err := c.ExportCompanyList(ctx, listID, req, dst); err != nil {
+				return err
+			}
+
+			if outputFile != "" && !quiet {
+				fmt.Fprintf(os.Stderr, "Done.\n")
+			}
+			return nil
+		},
+	}
+
+	cmd.Flags().StringVarP(&outputFile, "output", "o", "", "Write CSV to this file instead of stdout")
+	cmd.Flags().StringArrayVar(&fields, "field", nil, "Field to include (repeatable). Omit to include all default fields.")
+	cmd.Flags().StringArrayVar(&signalTemplateIDs, "signal-template-id", nil, "Signal template ID to include as columns (repeatable)")
+
 	return cmd
 }
 
