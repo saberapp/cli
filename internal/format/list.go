@@ -80,6 +80,26 @@ func PrintContactLists(w io.Writer, lists []client.ContactList, total int) {
 	fmt.Fprintf(w, "\n%d of %d lists\n", len(lists), total)
 }
 
+// PrintContactSearchResults renders a table of contact search results.
+func PrintContactSearchResults(w io.Writer, contacts []client.ContactSearchResult, count int) {
+	tw := NewTabWriter(w)
+	fmt.Fprintln(tw, "NAME\tROLE\tCOMPANY\tLOCATION")
+	for _, c := range contacts {
+		name := c.FullName
+		if name == "" {
+			name = c.FirstName + " " + c.LastName
+		}
+		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n",
+			TruncateString(name, 25),
+			TruncateString(c.Role, 30),
+			TruncateString(c.CompanyName, 25),
+			c.Location,
+		)
+	}
+	FlushTable(tw)
+	fmt.Fprintf(w, "\n%d contacts found\n", count)
+}
+
 // PrintContacts renders a table of contacts in a list.
 func PrintContacts(w io.Writer, contacts []client.ContactListItem, total int) {
 	tw := NewTabWriter(w)

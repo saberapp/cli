@@ -42,6 +42,8 @@ Get an API key at: https://ai.saber.app → Settings → API Keys`,
 	root.SetOut(os.Stdout)
 
 	root.AddCommand(newSignalCmd())
+	root.AddCommand(newCompanyCmd())
+	root.AddCommand(newContactCmd())
 	root.AddCommand(newListCmd())
 	root.AddCommand(newAuthCmd())
 	root.AddCommand(newCreditsCmd())

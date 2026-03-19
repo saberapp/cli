@@ -32,7 +32,6 @@ func newListCompanyCmd() *cobra.Command {
 	company.AddCommand(newListCompanyUpdateCmd())
 	company.AddCommand(newListCompanyDeleteCmd())
 	company.AddCommand(newListCompanyCompaniesCmd())
-	company.AddCommand(newListCompanySearchCmd())
 	company.AddCommand(newListCompanyImportCmd())
 	return company
 }
@@ -223,46 +222,6 @@ func newListCompanyCompaniesCmd() *cobra.Command {
 	return cmd
 }
 
-func newListCompanySearchCmd() *cobra.Command {
-	var (
-		industries   []string
-		sizes        []string
-		countryCodes []string
-	)
-	cmd := &cobra.Command{
-		Use:   "search",
-		Short: "Preview companies matching filters (without creating a list)",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			c, ctx := mustClient()
-			req := client.CompanySearchRequest{
-				Filter: client.CompanyListFilter{
-					Industries: industries,
-					Sizes:      sizes,
-				},
-			}
-			if len(countryCodes) > 0 {
-				req.Filter.Location = &client.CompanyListLocation{CountryCodes: countryCodes}
-			}
-			if jsonOutput {
-				_, err := c.SearchCompanies(ctx, req, os.Stdout)
-				return err
-			}
-			resp, err := c.SearchCompanies(ctx, req, nil)
-			if err != nil {
-				return err
-			}
-			if !quiet {
-				format.PrintCompanySearchResults(os.Stdout, resp.Companies, resp.Total)
-			}
-			return nil
-		},
-	}
-	cmd.Flags().StringArrayVar(&industries, "industry", nil, "Industry filter (repeatable)")
-	cmd.Flags().StringArrayVar(&sizes, "size", nil, "Employee size filter (repeatable)")
-	cmd.Flags().StringArrayVar(&countryCodes, "country", nil, "Country code filter (repeatable)")
-	return cmd
-}
-
 func newListCompanyImportCmd() *cobra.Command {
 	var (
 		name         string
@@ -321,7 +280,7 @@ func newListContactCmd() *cobra.Command {
 	contact.AddCommand(newListContactGetCmd())
 	contact.AddCommand(newListContactUpdateCmd())
 	contact.AddCommand(newListContactDeleteCmd())
-	contact.AddCommand(newListContactContactsCmd())
+	contact.AddCommand(newListContactShowCmd())
 	return contact
 }
 
@@ -466,10 +425,10 @@ func newListContactDeleteCmd() *cobra.Command {
 	}
 }
 
-func newListContactContactsCmd() *cobra.Command {
+func newListContactShowCmd() *cobra.Command {
 	var limit, offset int
 	cmd := &cobra.Command{
-		Use:   "contacts <listId>",
+		Use:   "show <listId>",
 		Short: "List contacts in a contact list",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
