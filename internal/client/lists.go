@@ -328,3 +328,45 @@ func (c *Client) GetContactsInList(ctx context.Context, id string, limit, offset
 	}
 	return &resp, nil
 }
+
+// ContactSearchRequest is the payload for POST /v1/contacts/search.
+type ContactSearchRequest struct {
+	CompanyLinkedInURLs []string `json:"companyLinkedInUrls,omitempty"`
+	FirstName           string   `json:"firstName,omitempty"`
+	LastName            string   `json:"lastName,omitempty"`
+	JobTitles           []string `json:"jobTitles,omitempty"`
+	Keywords            string   `json:"keywords,omitempty"`
+	Countries           []string `json:"countries,omitempty"`
+}
+
+// ContactSearchResult is a single contact returned from search.
+type ContactSearchResult struct {
+	FirstName                        string   `json:"firstName"`
+	LastName                         string   `json:"lastName"`
+	FullName                         string   `json:"fullName"`
+	Headline                         string   `json:"headline"`
+	Role                             string   `json:"role"`
+	CompanyName                      string   `json:"companyName"`
+	Location                         string   `json:"location"`
+	Seniority                        []string `json:"seniority"`
+	LinkedInProfileURL               string   `json:"linkedInProfileUrl"`
+	LinkedInSalesNavigatorProfileURL string   `json:"linkedInSalesNavigatorProfileUrl"`
+}
+
+// ContactSearchResponse wraps contact search results.
+type ContactSearchResponse struct {
+	Contacts          []ContactSearchResult `json:"contacts"`
+	Count             int                   `json:"count"`
+	SalesNavConnected bool                  `json:"salesNavConnected"`
+}
+
+func (c *Client) SearchContacts(ctx context.Context, req ContactSearchRequest, rawDst io.Writer) (*ContactSearchResponse, error) {
+	if rawDst != nil {
+		return nil, c.Post(ctx, "/v1/contacts/search", req, nil, rawDst)
+	}
+	var resp ContactSearchResponse
+	if err := c.Post(ctx, "/v1/contacts/search", req, &resp, nil); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
