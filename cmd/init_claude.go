@@ -234,6 +234,9 @@ revenue, prospecting, or signal-related task.
 - The user asks who to prioritize or what's showing intent
 - Before drafting outreach, building a sequence, or planning a campaign
 
+### Rules
+- Before creating a company list with a ` + "`--technology`" + ` filter, always run ` + "`saber list company count-preview`" + ` first with the same filter. Show the user the matched company count and credit cost, and ask them to confirm before proceeding with ` + "`create`" + `.
+
 ### Available CLI commands
 ` + commandList + `
 

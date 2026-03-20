@@ -11,13 +11,14 @@ import (
 
 // CompanyListFilter is the filter object used in company list create/update/search.
 type CompanyListFilter struct {
-	Domains    []string             `json:"domains,omitempty"`
-	Names      []string             `json:"names,omitempty"`
-	Industries []string             `json:"industries,omitempty"`
-	Sizes      []string             `json:"sizes,omitempty"`
-	Types      []string             `json:"types,omitempty"`
-	Location   *CompanyListLocation `json:"location,omitempty"`
-	Exclude    *CompanyListExclude  `json:"exclude,omitempty"`
+	Domains      []string             `json:"domains,omitempty"`
+	Names        []string             `json:"names,omitempty"`
+	Industries   []string             `json:"industries,omitempty"`
+	Sizes        []string             `json:"sizes,omitempty"`
+	Types        []string             `json:"types,omitempty"`
+	Technologies []string             `json:"technologies,omitempty"`
+	Location     *CompanyListLocation `json:"location,omitempty"`
+	Exclude      *CompanyListExclude  `json:"exclude,omitempty"`
 }
 
 // CompanyListLocation filters by geography.
@@ -214,6 +215,28 @@ func (c *Client) ImportCompanyList(ctx context.Context, req ImportCompanyListReq
 		return nil, err
 	}
 	return &list, nil
+}
+
+// CountPreviewCompanyListResponse is the response from POST /v1/companies/lists/count-preview.
+type CountPreviewCompanyListResponse struct {
+	Count   int `json:"count"`
+	Credits int `json:"credits"`
+}
+
+// CountPreviewCompanyListRequest is the payload for POST /v1/companies/lists/count-preview.
+type CountPreviewCompanyListRequest struct {
+	Filter CompanyListFilter `json:"filter"`
+}
+
+func (c *Client) CountPreviewCompanyList(ctx context.Context, req CountPreviewCompanyListRequest, rawDst io.Writer) (*CountPreviewCompanyListResponse, error) {
+	if rawDst != nil {
+		return nil, c.Post(ctx, "/v1/companies/lists/count-preview", req, nil, rawDst)
+	}
+	var resp CountPreviewCompanyListResponse
+	if err := c.Post(ctx, "/v1/companies/lists/count-preview", req, &resp, nil); err != nil {
+		return nil, err
+	}
+	return &resp, nil
 }
 
 // --- Contact Lists ---

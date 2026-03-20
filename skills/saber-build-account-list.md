@@ -2,7 +2,7 @@
 name: saber-build-account-list
 description: >
   Build a target account list using the Saber CLI and run company signals against it.
-version: 5
+version: 6
 ---
 
 # Saber Build Account List
@@ -41,6 +41,13 @@ Filter value formats:
 - `--industry` values are **lowercase**, e.g. `restaurants`, `hospitality`, `food & beverages`, `hotels and motels`. Use `&` not `and`.
 - `--size` values use K notation: `1-10`, `11-50`, `51-200`, `201-500`, `501-1K`, `1K-5K`, `5K-10K`, `10K+`
 - `--country` values are ISO 3166-1 alpha-2 codes, e.g. `GB`, `DE`, `FR`, `NL`
+- `--technology` values are technology slugs, e.g. `stripe`, `hubspot`, `salesforce`
+
+**Important: if the filter includes `--technology`, always run `count-preview` first** before creating the list. This shows the user how many companies match and how many Saber credits it will cost — without charging anything:
+```bash
+saber list company count-preview --technology "<slug>" [--industry] [--country] [--size]
+```
+Present the result to the user ("X companies match, Y credits required") and ask them to confirm before running `create`. Skip this step only if the user has explicitly already confirmed the cost.
 
 **Option B — Provide domains or company names directly**
 If the user has a list of domains or company names, create an empty named list and ask them to add companies via the Saber dashboard:
@@ -94,7 +101,8 @@ If approved signals are available in conversation context, offer to run them aga
 ## Key commands
 
 ```bash
-saber list company create --name "<name>" [--industry] [--country] [--size]
+saber list company count-preview [--technology] [--industry] [--country] [--size]
+saber list company create --name "<name>" [--industry] [--country] [--size] [--technology]
 saber list company import --name "<name>" --property <property> --operator EQ --value "<value>"
 saber list company get <listId>
 saber list company list
