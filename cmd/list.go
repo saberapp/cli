@@ -35,6 +35,7 @@ func newListCompanyCmd() *cobra.Command {
 	company.AddCommand(newListCompanyCompaniesCmd())
 	company.AddCommand(newListCompanyImportCmd())
 	company.AddCommand(newListCompanyExportCmd())
+	company.AddCommand(newListCompanyCountPreviewCmd())
 	return company
 }
 
@@ -44,6 +45,7 @@ func newListCompanyCreateCmd() *cobra.Command {
 		industries   []string
 		sizes        []string
 		countryCodes []string
+		technologies []string
 	)
 	cmd := &cobra.Command{
 		Use:   "create",
@@ -53,8 +55,9 @@ func newListCompanyCreateCmd() *cobra.Command {
 			req := client.CreateCompanyListRequest{
 				Name: name,
 				Filter: client.CompanyListFilter{
-					Industries: industries,
-					Sizes:      sizes,
+					Industries:   industries,
+					Sizes:        sizes,
+					Technologies: technologies,
 				},
 			}
 			if len(countryCodes) > 0 {
@@ -78,6 +81,7 @@ func newListCompanyCreateCmd() *cobra.Command {
 	cmd.Flags().StringArrayVar(&industries, "industry", nil, "Industry filter (repeatable)")
 	cmd.Flags().StringArrayVar(&sizes, "size", nil, "Employee size filter (repeatable, e.g. '51-200')")
 	cmd.Flags().StringArrayVar(&countryCodes, "country", nil, "Country code filter (repeatable, e.g. 'US')")
+	cmd.Flags().StringArrayVar(&technologies, "technology", nil, "Technology filter (repeatable, e.g. 'stripe')")
 	_ = cmd.MarkFlagRequired("name")
 	return cmd
 }
@@ -137,6 +141,7 @@ func newListCompanyUpdateCmd() *cobra.Command {
 		industries   []string
 		sizes        []string
 		countryCodes []string
+		technologies []string
 	)
 	cmd := &cobra.Command{
 		Use:   "update <listId>",
@@ -144,15 +149,17 @@ func newListCompanyUpdateCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if !cmd.Flags().Changed("name") && !cmd.Flags().Changed("industry") &&
-				!cmd.Flags().Changed("size") && !cmd.Flags().Changed("country") {
-				return fmt.Errorf("at least one of --name, --industry, --size, --country is required")
+				!cmd.Flags().Changed("size") && !cmd.Flags().Changed("country") &&
+				!cmd.Flags().Changed("technology") {
+				return fmt.Errorf("at least one of --name, --industry, --size, --country, --technology is required")
 			}
 			c, ctx := mustClient()
 			req := client.UpdateCompanyListRequest{
 				Name: name,
 				Filter: client.CompanyListFilter{
-					Industries: industries,
-					Sizes:      sizes,
+					Industries:   industries,
+					Sizes:        sizes,
+					Technologies: technologies,
 				},
 			}
 			if len(countryCodes) > 0 {
@@ -176,6 +183,7 @@ func newListCompanyUpdateCmd() *cobra.Command {
 	cmd.Flags().StringArrayVar(&industries, "industry", nil, "Industry filter (repeatable)")
 	cmd.Flags().StringArrayVar(&sizes, "size", nil, "Employee size filter (repeatable)")
 	cmd.Flags().StringArrayVar(&countryCodes, "country", nil, "Country code filter (repeatable)")
+	cmd.Flags().StringArrayVar(&technologies, "technology", nil, "Technology filter (repeatable, e.g. 'stripe')")
 	return cmd
 }
 
@@ -324,6 +332,54 @@ By default the CSV is written to stdout; use --output to write to a file.`,
 	cmd.Flags().StringArrayVar(&fields, "field", nil, "Field to include (repeatable). Omit to include all default fields.")
 	cmd.Flags().StringArrayVar(&signalTemplateIDs, "signal-template-id", nil, "Signal template ID to include as columns (repeatable)")
 
+	return cmd
+}
+
+func newListCompanyCountPreviewCmd() *cobra.Command {
+	var (
+		industries   []string
+		sizes        []string
+		countryCodes []string
+		technologies []string
+	)
+	cmd := &cobra.Command{
+		Use:   "count-preview",
+		Short: "Preview expected company count and credit cost for a filter",
+		Long: `Returns the number of companies that match a given filter and the Saber
+credit cost to create that list — without creating the list or charging any credits.
+
+Results are cached for 5 minutes.`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			c, ctx := mustClient()
+			req := client.CountPreviewCompanyListRequest{
+				Filter: client.CompanyListFilter{
+					Industries:   industries,
+					Sizes:        sizes,
+					Technologies: technologies,
+				},
+			}
+			if len(countryCodes) > 0 {
+				req.Filter.Location = &client.CompanyListLocation{CountryCodes: countryCodes}
+			}
+			if jsonOutput {
+				_, err := c.CountPreviewCompanyList(ctx, req, os.Stdout)
+				return err
+			}
+			resp, err := c.CountPreviewCompanyList(ctx, req, nil)
+			if err != nil {
+				return err
+			}
+			if !quiet {
+				fmt.Fprintf(os.Stdout, "Companies matched: %s\n", formatInt(resp.Count))
+				fmt.Fprintf(os.Stdout, "Credits required:  %s\n", formatInt(resp.Credits))
+			}
+			return nil
+		},
+	}
+	cmd.Flags().StringArrayVar(&industries, "industry", nil, "Industry filter (repeatable)")
+	cmd.Flags().StringArrayVar(&sizes, "size", nil, "Employee size filter (repeatable, e.g. '51-200')")
+	cmd.Flags().StringArrayVar(&countryCodes, "country", nil, "Country code filter (repeatable, e.g. 'US')")
+	cmd.Flags().StringArrayVar(&technologies, "technology", nil, "Technology filter (repeatable, e.g. 'stripe')")
 	return cmd
 }
 
