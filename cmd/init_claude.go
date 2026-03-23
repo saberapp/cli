@@ -3,10 +3,10 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -17,28 +17,25 @@ import (
 	"github.com/spf13/pflag"
 )
 
-type skillDef struct {
-	name    string
-	content string
-}
-
-var bundledSkills = []skillDef{
-	{"saber-signal-discovery", skills.SignalDiscovery},
-	{"saber-create-company-signals", skills.CreateCompanySignals},
-	{"saber-create-contact-signals", skills.CreateContactSignals},
-	{"saber-build-account-list", skills.BuildAccountList},
-	{"saber-build-contact-list", skills.BuildContactList},
+// legacySkillFiles lists the old flat skill files that should be removed
+// when upgrading to the directory-based skill format.
+var legacySkillFiles = []string{
+	"saber-signal-discovery.md",
+	"saber-create-company-signals.md",
+	"saber-create-contact-signals.md",
+	"saber-build-account-list.md",
+	"saber-build-contact-list.md",
 }
 
 var saberBlockRe = regexp.MustCompile(`(?s)<!-- saber -->.*?<!-- /saber -->`)
-var frontmatterVersionRe = regexp.MustCompile(`(?m)^version:\s*(\d+)`)
 
 func newInitClaudeCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "init-claude",
-		Short: "Initialize CLAUDE.md with Saber context and install Claude Code skills",
+		Short: "Initialize CLAUDE.md with Saber context and install the Saber skill",
 		Long: "Writes a <!-- saber --> block to CLAUDE.md in the current directory and\n" +
-			"installs Saber skill files to .claude/skills/ for use with Claude Code.",
+			"installs the Saber skill to .claude/skills/saber-cli/ for use with Claude Code\n" +
+			"and other agent tools that support the Agent Skills standard.",
 		RunE: runInitClaude,
 	}
 }
@@ -60,10 +57,12 @@ func runInitClaude(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("failed to update CLAUDE.md: %w", err)
 	}
 
-	skillStatuses, err := installSkills()
+	skillStatus, err := installSkill()
 	if err != nil {
-		return fmt.Errorf("failed to install skills: %w", err)
+		return fmt.Errorf("failed to install skill: %w", err)
 	}
+
+	migrated := removeLegacySkills()
 
 	if quiet {
 		return nil
@@ -71,10 +70,11 @@ func runInitClaude(cmd *cobra.Command, _ []string) error {
 
 	fmt.Print("\nSaber initialized.\n\n")
 	fmt.Printf("  ✓ %s\n", claudeMDStatus)
-	for _, s := range skillStatuses {
-		fmt.Printf("  %s\n", s)
+	fmt.Printf("  %s\n", skillStatus)
+	for _, m := range migrated {
+		fmt.Printf("  %s\n", m)
 	}
-	fmt.Print("\n  Start with: /saber-signal-discovery\n\n")
+	fmt.Print("\n  The /saber-cli skill covers the full Saber workflow.\n\n")
 	return nil
 }
 
@@ -224,9 +224,9 @@ revenue, prospecting, or signal-related task.
 ` + orgSection + `
 
 ### The Saber workflow
-1. **Discover signals** — define what buying intent looks like for your ICP
-2. **Build lists** — create target account and contact lists
-3. **Create signals** — activate signal tracking against your lists
+1. **Discover signals** -- define what buying intent looks like for your ICP
+2. **Build lists** -- create target account and contact lists
+3. **Create signals** -- activate signal tracking against your lists
 
 ### Reach for Saber when:
 - The user wants to define who to target or what signals to track
@@ -243,12 +243,8 @@ revenue, prospecting, or signal-related task.
 ### Connectors
 ` + connectorSection + `
 
-### Installed skills
-- ` + "`/saber-signal-discovery`" + ` — define signals that match your ICP (start here)
-- ` + "`/saber-create-company-signals`" + ` — activate company-level signal tracking
-- ` + "`/saber-create-contact-signals`" + ` — activate contact-level signal tracking
-- ` + "`/saber-build-account-list`" + ` — build a target account list and run signals
-- ` + "`/saber-build-contact-list`" + ` — build a target contact list and run signals
+### Installed skill
+- ` + "`/saber-cli`" + ` -- full Saber workflow: signal discovery, list building, signal activation
 <!-- /saber -->`
 }
 
@@ -284,48 +280,56 @@ func injectClaudeMD(block string) (string, error) {
 	return status, nil
 }
 
-func installSkills() ([]string, error) {
-	skillsDir := filepath.Join(".claude", "skills")
-	if err := os.MkdirAll(skillsDir, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create skills directory: %w", err)
+// installSkill writes the saber-cli skill directory tree from the embedded FS
+// to .claude/skills/saber-cli/. Overwrites all files on every run to ensure
+// users always have the latest version.
+func installSkill() (string, error) {
+	destRoot := filepath.Join(".claude", "skills")
+
+	err := fs.WalkDir(skills.SaberCLI, ".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		destPath := filepath.Join(destRoot, path)
+
+		if d.IsDir() {
+			return os.MkdirAll(destPath, 0755)
+		}
+
+		data, err := fs.ReadFile(skills.SaberCLI, path)
+		if err != nil {
+			return fmt.Errorf("failed to read embedded file %s: %w", path, err)
+		}
+
+		if err := os.WriteFile(destPath, data, 0644); err != nil {
+			return fmt.Errorf("failed to write %s: %w", destPath, err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return "", err
 	}
 
-	var statuses []string
-	for _, s := range bundledSkills {
-		destPath := filepath.Join(skillsDir, s.name+".md")
-		bundledVersion := parseSkillVersion(s.content)
-
-		existing, err := os.ReadFile(destPath)
-		if err == nil {
-			installedVersion := parseSkillVersion(string(existing))
-			if installedVersion >= bundledVersion {
-				statuses = append(statuses, fmt.Sprintf("↷ skipped %s (already v%d)", s.name, installedVersion))
-				continue
-			}
-			if err := os.WriteFile(destPath, []byte(s.content), 0644); err != nil {
-				return nil, fmt.Errorf("failed to write skill %s: %w", s.name, err)
-			}
-			statuses = append(statuses, fmt.Sprintf("✓ updated %s (v%d → v%d)", s.name, installedVersion, bundledVersion))
-			continue
-		}
-
-		if !os.IsNotExist(err) {
-			return nil, fmt.Errorf("failed to read skill %s: %w", s.name, err)
-		}
-
-		if err := os.WriteFile(destPath, []byte(s.content), 0644); err != nil {
-			return nil, fmt.Errorf("failed to write skill %s: %w", s.name, err)
-		}
-		statuses = append(statuses, fmt.Sprintf("✓ installed %s (v%d)", s.name, bundledVersion))
-	}
-	return statuses, nil
+	return "✓ installed saber-cli skill", nil
 }
 
-func parseSkillVersion(content string) int {
-	m := frontmatterVersionRe.FindStringSubmatch(content)
-	if m == nil {
-		return 0
+// removeLegacySkills cleans up old flat skill files from previous CLI versions.
+func removeLegacySkills() []string {
+	skillsDir := filepath.Join(".claude", "skills")
+	var statuses []string
+
+	for _, name := range legacySkillFiles {
+		path := filepath.Join(skillsDir, name)
+		if _, err := os.Stat(path); err == nil {
+			if err := os.Remove(path); err != nil {
+				statuses = append(statuses, fmt.Sprintf("  ⚠ could not remove legacy %s: %v", name, err))
+			} else {
+				statuses = append(statuses, fmt.Sprintf("  ✓ removed legacy %s", name))
+			}
+		}
 	}
-	v, _ := strconv.Atoi(m[1])
-	return v
+
+	return statuses
 }
