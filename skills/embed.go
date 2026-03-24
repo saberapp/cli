@@ -1,19 +1,10 @@
-// Package skills provides embedded Saber skill files for Claude Code.
+// Package skills provides embedded Saber skill files for agent skill installation.
 package skills
 
-import _ "embed"
+import "embed"
 
-//go:embed saber-signal-discovery.md
-var SignalDiscovery string
-
-//go:embed saber-create-company-signals.md
-var CreateCompanySignals string
-
-//go:embed saber-create-contact-signals.md
-var CreateContactSignals string
-
-//go:embed saber-build-account-list.md
-var BuildAccountList string
-
-//go:embed saber-build-contact-list.md
-var BuildContactList string
+// SaberCLI contains the complete saber-cli skill directory tree
+// (SKILL.md + references/*). Use fs.ReadFile or fs.ReadDir to access files.
+//
+//go:embed saber-cli/SKILL.md saber-cli/references/*.md
+var SaberCLI embed.FS
