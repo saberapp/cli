@@ -158,6 +158,62 @@ Both `--company-linkedin` and `--title` are repeatable. `--company-linkedin` is 
 saber contact search --company-linkedin https://linkedin.com/company/acme --title "VP Sales"
 ```
 
+## Market Signals
+
+Market signals monitor external data sources continuously and deliver matching
+signals to a webhook. Unlike company/contact signals which answer research questions,
+market signals track real-time events: job postings, LinkedIn posts, fundraising,
+investments, and IPOs.
+
+### Subscription types
+
+| Type | Description |
+|---|---|
+| `JOB_POSTS` | Monitor job postings matching title, location, company filters |
+| `LINKEDIN_POST` | Monitor LinkedIn posts matching keyword filters (requires Sales Navigator) |
+| `FUND_RAISED` | Monitor fund closings and fundraising events |
+| `RECENT_INVESTMENT` | Monitor investment and funding rounds |
+| `IPO` | Monitor IPO and public listing announcements |
+
+### Create a market signal subscription
+
+```bash
+# Monitor DevOps job postings in the US
+saber market-signal create --type JOB_POSTS --name "DevOps hiring" \
+  --filters '{"titleKeywords":["DevOps Engineer","SRE"],"countries":["US"]}' \
+  --webhook https://example.com/hook
+
+# Use AI to generate filters from a prompt
+saber market-signal create --type JOB_POSTS --name "AI startups" \
+  --prompt "Find companies hiring ML engineers at Series A startups in Europe" \
+  --webhook https://example.com/hook
+
+# Monitor LinkedIn posts about AI
+saber market-signal create --type LINKEDIN_POST --name "AI posts" \
+  --filters '{"keywordsAll":["artificial intelligence"],"keywordsAny":["GPT","LLM"]}' \
+  --webhook https://example.com/hook
+
+# Monitor fundraising events weekly
+saber market-signal create --type FUND_RAISED --name "PE funds" \
+  --filters '{"keywords":["private equity"],"maxLookbackDays":30}' \
+  --webhook https://example.com/hook --interval weekly
+```
+
+### Manage market signal subscriptions
+
+```bash
+saber market-signal list                          # List all subscriptions
+saber market-signal get <subscriptionId>          # Get subscription details
+saber market-signal update <id> --name "New name" # Update subscription
+saber market-signal pause <id>                    # Pause polling
+saber market-signal resume <id>                   # Resume polling
+saber market-signal trigger <id>                  # Trigger immediate run
+saber market-signal signals <id>                  # List matched signals
+saber market-signal delete <id>                   # Delete subscription
+```
+
+The alias `saber ms` works as shorthand for `saber market-signal`.
+
 ## Phase 3 -- Activate Signal Tracking
 
 ### Before running any signals

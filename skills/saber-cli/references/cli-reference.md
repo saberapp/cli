@@ -319,6 +319,59 @@ saber org update [flags]                              # Update organisation prof
 
 At least one flag is required for `update`.
 
+## Market Signals
+
+Market signal subscriptions monitor external data sources (job posts, LinkedIn posts,
+fundraising, investments, IPOs) and deliver matching signals to your webhook.
+
+### Create a subscription
+
+```bash
+saber market-signal create --type <type> --webhook <url> [flags]
+```
+
+| Flag | Default | Description |
+|---|---|---|
+| `--type` | required | `JOB_POSTS`, `LINKEDIN_POST`, `FUND_RAISED`, `RECENT_INVESTMENT`, `IPO` |
+| `--webhook` | required | URL to receive matched signals |
+| `--name` | | Display name |
+| `--prompt` | | Natural language prompt for AI filter generation (JOB_POSTS only) |
+| `--filters` | | Filters as JSON string (schema depends on type) |
+| `--webhook-secret` | | Secret for HMAC-SHA256 webhook verification |
+| `--interval` | `daily` | Polling interval: `daily` or `weekly` |
+| `--signal-limit` | `500` | Max signals per polling interval (1-10000) |
+
+Alias: `saber ms` is shorthand for `saber market-signal`.
+
+### Manage subscriptions
+
+```bash
+saber market-signal list [--limit 20] [--offset 0] [--include-deleted]
+saber market-signal get <subscriptionId>
+saber market-signal update <subscriptionId> [flags]    # PATCH semantics
+saber market-signal delete <subscriptionId>            # Soft-delete
+saber market-signal pause <subscriptionId>             # Pause polling
+saber market-signal resume <subscriptionId>            # Resume polling
+saber market-signal trigger <subscriptionId>           # Trigger immediate run
+saber market-signal signals <subscriptionId>           # List matched signals
+```
+
+Update flags: `--name`, `--prompt`, `--filters`, `--webhook`, `--webhook-secret`,
+`--interval`, `--signal-limit`. At least one flag is required.
+
+### Filter schemas by type
+
+**JOB_POSTS:** `titleKeywords`, `excludeTitleKeywords`, `titlePatterns`, `countries`,
+`seniority`, `technologySlugs`, `minSalaryUsd`, `maxSalaryUsd`, `remote`,
+`companyDomains`, `excludeCompanyDomains`, `minEmployees`, `maxEmployees`,
+`fundingStages`, `excludeRecruitingAgencies`, `promptFilter`, `maxLookbackDays`
+
+**LINKEDIN_POST:** `keywordsAll`, `keywordsAny`, `keywordsNone`, `promptFilter`,
+`maxLookbackDays`
+
+**FUND_RAISED / RECENT_INVESTMENT / IPO:** `searchQueries`, `keywords`,
+`excludeKeywords`, `countries`, `minAmountUsd`, `maxLookbackDays`, `promptFilter`
+
 ## Other Commands
 
 ```bash
