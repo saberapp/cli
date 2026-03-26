@@ -26,41 +26,84 @@ Get an API key at [ai.saber.app > Settings > API Keys](https://ai.saber.app).
 
 ```bash
 saber signal --domain <domain> --question "<question>" [flags]
+saber signal --domain <domain> --template <templateId> [flags]
 ```
 
 | Flag | Short | Default | Description |
 |---|---|---|---|
 | `--domain` | `-d` | required | Company domain (e.g. `acme.com`) |
-| `--question` | `-q` | required | Research question (max 500 chars) |
+| `--question` | `-q` | required* | Research question (max 500 chars) |
+| `--template` | | | Signal template ID (alternative to `--question`) |
 | `--answer-type` | `-a` | `open_text` | Response format (see answer types below) |
+| `--verification-mode` | | `strict` | `strict` or `lenient` |
 | `--force-refresh` | | `false` | Bypass the 12-hour answer cache |
 | `--no-wait` | | `false` | Return signal ID immediately without polling |
 | `--webhook` | | | POST result to this URL when complete |
-| `--poll-interval` | | `3` | Seconds between poll attempts |
 | `--max-wait` | | `120` | Max seconds to wait before timing out |
+
+*Required unless `--template` is provided.
 
 ### Create a contact signal
 
 ```bash
 saber signal --profile <linkedin-url> --question "<question>" [flags]
+saber signal --profile <linkedin-url> --template <templateId> [flags]
 ```
 
 | Flag | Short | Default | Description |
 |---|---|---|---|
 | `--profile` | `-p` | required | Contact LinkedIn profile URL |
-| `--question` | `-q` | required | Research question (max 500 chars) |
+| `--question` | `-q` | required* | Research question (max 500 chars) |
+| `--template` | | | Signal template ID (alternative to `--question`) |
 | `--answer-type` | `-a` | `open_text` | Response format (see answer types below) |
+| `--verification-mode` | | `strict` | `strict` or `lenient` |
 | `--force-refresh` | | `false` | Bypass the 12-hour answer cache |
 | `--no-wait` | | `false` | Return signal ID immediately without polling |
 | `--webhook` | | | POST result to this URL when complete |
-| `--poll-interval` | | `3` | Seconds between poll attempts |
 | `--max-wait` | | `120` | Max seconds to wait before timing out |
+
+*Required unless `--template` is provided.
 
 ### Retrieve a signal result
 
 ```bash
 saber signal get <signalId>
 ```
+
+### List signals
+
+```bash
+saber signal list [flags]
+```
+
+| Flag | Default | Description |
+|---|---|---|
+| `--domain` / `-d` | | Filter by company domain |
+| `--company-id` | | Filter by company ID |
+| `--status` | | Filter by status: `processing`, `completed`, `failed` (repeatable) |
+| `--from-date` | | Signals completed after this date (RFC3339) |
+| `--to-date` | | Signals completed before this date (RFC3339) |
+| `--subscription-id` | | Filter by subscription ID |
+| `--limit` | `25` | Max results |
+| `--offset` | `0` | Pagination offset |
+
+### Batch signals
+
+Create signals using a Cartesian product of questions x domains.
+
+```bash
+saber signal batch --domain <d> --question <q> [flags]
+```
+
+| Flag | Short | Default | Description |
+|---|---|---|---|
+| `--domain` | `-d` | required | Company domain (repeatable) |
+| `--question` | `-q` | required | Research question (repeatable) |
+| `--answer-type` | `-a` | `open_text` | Answer type for all questions |
+| `--async` | | `false` | Async mode for large batches (up to 20,000 signals) |
+| `--generate-summary` | | `false` | Auto-generate summaries when all signals complete |
+| `--webhook` | | | Webhook URL for each signal |
+| `--force-refresh` | | `false` | Bypass the 12-hour answer cache |
 
 ### Answer types
 
@@ -73,6 +116,54 @@ saber signal get <signalId>
 | `percentage` | Percentage value | "What is their YoY growth rate?" |
 | `currency` | Monetary amount | "What is their ARR?" |
 | `url` | URL answer | "Where is their careers page?" |
+
+## Signal Templates
+
+Reusable templates that define signal questions, answer types, weights, and
+qualification criteria.
+
+### Create a template
+
+```bash
+saber template create --name "<name>" --question "<question>" [flags]
+```
+
+| Flag | Short | Default | Description |
+|---|---|---|---|
+| `--name` | | required | Template name |
+| `--question` | `-q` | required | Research question |
+| `--description` | | | Optional description |
+| `--answer-type` | `-a` | `open_text` | Answer type |
+| `--weight` | | | `important`, `nice_to_have`, `not_important` |
+
+### Manage templates
+
+```bash
+saber template list [--limit 20] [--offset 0] [--include-deleted]
+saber template get <templateId>
+saber template update <templateId> [flags]    # PATCH semantics, creates new version
+saber template delete <templateId>            # Soft-delete
+```
+
+Update flags: `--name`, `--question`, `--description`, `--answer-type`, `--weight`.
+At least one flag is required.
+
+## Signal Summaries
+
+AI-powered summaries that consolidate insights from completed signals into
+structured data points with qualifications and sources.
+
+### Generate a summary
+
+```bash
+saber summary generate --domain <domain>
+```
+
+### List summaries
+
+```bash
+saber summary list --domain <domain> [--limit 20] [--offset 0]
+```
 
 ## Company Lists
 

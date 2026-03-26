@@ -167,6 +167,105 @@ Before any `saber signal` or `saber subscription` command that consumes credits:
 2. State how many signals will run (companies x questions, or contacts x questions)
 3. Ask the user to confirm before proceeding
 
+### Signal templates
+
+Create reusable templates for frequently used signal questions. Templates store the
+question, answer type, weight, and qualification criteria so they can be referenced
+by ID instead of repeating the full definition.
+
+```bash
+# Create a template
+saber template create --name "CRM Detection" --question "Which CRM are they using?" \
+  --answer-type list --weight important
+
+# List templates
+saber template list
+
+# Get template details
+saber template get <templateId>
+
+# Update a template (creates a new version)
+saber template update <templateId> --name "CRM Detection v2" --weight nice_to_have
+
+# Delete a template (soft-delete)
+saber template delete <templateId>
+```
+
+### Company signals -- spot check
+
+Run a question against a single domain:
+
+```bash
+saber signal --domain acme.com --question "Are they hiring engineers?" --answer-type boolean
+```
+
+Use a template instead of inline question:
+
+```bash
+saber signal --domain acme.com --template <templateId>
+```
+
+Use lenient verification mode for broader answers:
+
+```bash
+saber signal --domain acme.com --question "What is their tech stack?" --verification-mode lenient
+```
+
+Fire multiple in parallel with `--no-wait`:
+
+```bash
+saber signal --domain acme.com --question "Are they hiring?" --no-wait
+saber signal --domain globex.com --question "Are they hiring?" --no-wait
+# Collect signal IDs, then retrieve:
+saber signal get <signalId>
+```
+
+### Company signals -- batch
+
+Run multiple questions across multiple domains in one call. Creates a Cartesian
+product (each question x each domain).
+
+```bash
+# 2 questions x 3 domains = 6 signals
+saber signal batch \
+  --domain acme.com --domain globex.com --domain initech.com \
+  --question "Are they hiring engineers?" \
+  --question "What CRM do they use?" \
+  --answer-type boolean
+
+# Auto-generate summaries when all signals complete
+saber signal batch --domain acme.com --domain globex.com \
+  --question "Revenue?" --question "Headcount?" --generate-summary
+
+# Async mode for large batches (up to 20,000 signals)
+saber signal batch --domain acme.com --question "..." --async
+```
+
+### Company signals -- listing and filtering
+
+Browse and filter existing signal results:
+
+```bash
+saber signal list                                          # all signals
+saber signal list --domain acme.com --status completed     # filter by domain and status
+saber signal list --from-date 2024-01-01T00:00:00Z         # filter by date
+saber signal list --subscription-id <id>                   # filter by subscription
+saber signal list --limit 10 --offset 20                   # pagination
+```
+
+### Signal summaries
+
+Generate AI-powered summaries that consolidate insights from all completed signals
+for a domain into structured data points with qualifications and sources.
+
+```bash
+# Generate a new summary
+saber summary generate --domain acme.com
+
+# List historical summaries for a domain
+saber summary list --domain acme.com
+```
+
 ### Company signals -- full list (subscriptions)
 
 For running a signal across all companies in a list, use subscriptions.
@@ -202,23 +301,6 @@ saber subscription start <subscriptionId>      # activate schedule
 saber subscription stop <subscriptionId>       # pause schedule
 ```
 
-### Company signals -- spot check
-
-Run a question against a single domain:
-
-```bash
-saber signal --domain acme.com --question "Are they hiring engineers?" --answer-type boolean
-```
-
-Fire multiple in parallel with `--no-wait`:
-
-```bash
-saber signal --domain acme.com --question "Are they hiring?" --no-wait
-saber signal --domain globex.com --question "Are they hiring?" --no-wait
-# Collect signal IDs, then retrieve:
-saber signal get <signalId>
-```
-
 ### Contact signals
 
 Run a question against a LinkedIn profile:
@@ -226,6 +308,12 @@ Run a question against a LinkedIn profile:
 ```bash
 saber signal --profile https://linkedin.com/in/janedoe \
   --question "Is this person posting about employee retention challenges?"
+```
+
+Use a template:
+
+```bash
+saber signal --profile https://linkedin.com/in/janedoe --template <templateId>
 ```
 
 Fire multiple with `--no-wait`:
@@ -250,6 +338,13 @@ saber signal --domain <domain> --question "<question>" --answer-type boolean --n
 saber signal get <signalId>
 ```
 
+Or use batch for a quicker multi-domain sample:
+
+```bash
+saber signal batch --domain acme.com --domain globex.com --domain initech.com \
+  --question "Are they hiring?" --answer-type boolean
+```
+
 Present results and ask:
 - Do the signals look accurate?
 - Any false positives or unexpected answers?
@@ -264,12 +359,16 @@ accuracy), run signals, review, then confirm.
 |---|---|---|
 | `--domain` / `-d` | -- | Company domain (company signals) |
 | `--profile` / `-p` | -- | LinkedIn profile URL (contact signals) |
-| `--question` / `-q` | required | Research question (max 500 chars) |
+| `--question` / `-q` | required* | Research question (max 500 chars) |
+| `--template` | -- | Signal template ID (alternative to `--question`) |
 | `--answer-type` / `-a` | `open_text` | `open_text`, `boolean`, `number`, `list`, `percentage`, `currency`, `url` |
+| `--verification-mode` | `strict` | `strict` or `lenient` |
 | `--force-refresh` | false | Bypass 12h result cache |
 | `--no-wait` | false | Return signal ID immediately without polling |
 | `--webhook` | -- | POST result to this URL when complete |
 | `--max-wait` | `120` | Max seconds to wait before timing out |
+
+*Required unless `--template` is provided.
 
 ## Common Patterns
 
@@ -307,6 +406,33 @@ saber subscription create --list <listId> --name "Funding signal" \
   --question "Has this company raised funding recently?" --answer-type boolean --frequency monthly --run-once
 saber subscription create --list <listId> --name "Tech migration" \
   --question "Is this company migrating their tech stack?" --answer-type boolean --frequency monthly --run-once
+```
+
+Or use batch for a quick multi-question run across specific domains:
+
+```bash
+saber signal batch \
+  --domain acme.com --domain globex.com \
+  --question "Is this company actively hiring?" \
+  --question "Has this company raised funding recently?" \
+  --question "Is this company migrating their tech stack?" \
+  --answer-type boolean --generate-summary
+```
+
+### Template-based workflow
+
+Create templates once, reuse across signals and subscriptions:
+
+```bash
+# Create templates
+saber template create --name "Hiring" --question "Is this company actively hiring?" --answer-type boolean
+saber template create --name "Funding" --question "Has this company raised funding recently?" --answer-type boolean
+
+# Run signals using templates
+saber signal --domain acme.com --template <templateId>
+
+# Use templates in subscriptions
+saber subscription create --list <listId> --template <templateId> --frequency weekly
 ```
 
 ### Check account status
