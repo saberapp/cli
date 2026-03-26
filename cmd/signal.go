@@ -226,7 +226,6 @@ func newSignalBatchCmd() *cobra.Command {
 	var (
 		domains         []string
 		questions       []string
-		templateIDs     []string
 		answerType      string
 		async           bool
 		generateSummary bool
@@ -235,25 +234,21 @@ func newSignalBatchCmd() *cobra.Command {
 	)
 	cmd := &cobra.Command{
 		Use:   "batch",
-		Short: "Create multiple signals in batch (Cartesian product of signals x domains)",
+		Short: "Create multiple signals in batch (Cartesian product of questions x domains)",
 		Long: `Submit multiple signal questions and domains to create signals using a Cartesian
-product pattern. Each signal question is combined with each domain.
+product pattern. Each question is combined with each domain.
 
-You can provide inline questions via --question (repeatable), template IDs via
---template (repeatable), or mix both.
-
-By default runs in sync mode (max 100 signals). Use --async for large batches
-up to 20,000 signals.`,
+Provide questions via --question (repeatable). By default runs in sync mode
+(max 100 signals). Use --async for large batches up to 20,000 signals.`,
 		Example: `  saber signal batch --domain acme.com --domain google.com --question "What CRM do they use?" --question "Are they hiring?"
-  saber signal batch --domain acme.com --template <id1> --template <id2>
   saber signal batch --domain acme.com --domain google.com --question "Revenue?" --generate-summary
   saber signal batch --domain acme.com --question "..." --async`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(domains) == 0 {
 				return fmt.Errorf("at least one --domain is required")
 			}
-			if len(questions) == 0 && len(templateIDs) == 0 {
-				return fmt.Errorf("at least one --question or --template is required")
+			if len(questions) == 0 {
+				return fmt.Errorf("at least one --question is required")
 			}
 
 			c, ctx := mustClient()
@@ -266,13 +261,6 @@ up to 20,000 signals.`,
 				signals = append(signals, client.BatchSignalItem{
 					Question:     q,
 					AnswerType:   answerType,
-					WebhookURL:   webhook,
-					ForceRefresh: forceRefresh,
-				})
-			}
-			for _, tid := range templateIDs {
-				signals = append(signals, client.BatchSignalItem{
-					TemplateID:   tid,
 					WebhookURL:   webhook,
 					ForceRefresh: forceRefresh,
 				})
@@ -306,8 +294,7 @@ up to 20,000 signals.`,
 		},
 	}
 	cmd.Flags().StringArrayVarP(&domains, "domain", "d", nil, "Company domain (repeatable, required)")
-	cmd.Flags().StringArrayVarP(&questions, "question", "q", nil, "Research question (repeatable)")
-	cmd.Flags().StringArrayVar(&templateIDs, "template", nil, "Signal template ID (repeatable)")
+	cmd.Flags().StringArrayVarP(&questions, "question", "q", nil, "Research question (repeatable, required)")
 	cmd.Flags().StringVarP(&answerType, "answer-type", "a", "", "Answer type for inline questions")
 	cmd.Flags().BoolVar(&async, "async", false, "Async mode for large batches (up to 20,000 signals)")
 	cmd.Flags().BoolVar(&generateSummary, "generate-summary", false, "Auto-generate summaries when all signals complete")

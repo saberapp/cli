@@ -239,8 +239,7 @@ func (c *Client) ListSignals(ctx context.Context, params ListSignalsParams, rawD
 
 // BatchSignalItem is a single signal definition in a batch request.
 type BatchSignalItem struct {
-	Question     string `json:"question,omitempty"`
-	TemplateID   string `json:"templateId,omitempty"`
+	Question     string `json:"question"`
 	AnswerType   string `json:"answerType,omitempty"`
 	Weight       string `json:"weight,omitempty"`
 	WebhookURL   string `json:"webhookUrl,omitempty"`
@@ -257,13 +256,12 @@ type CreateSignalBatchRequest struct {
 
 // BatchResultItem is a single signal result from a batch response.
 type BatchResultItem struct {
-	ID         string `json:"id,omitempty"`
-	TemplateID string `json:"templateId,omitempty"`
-	Status     string `json:"status"`
-	Domain     string `json:"domain"`
-	Question   string `json:"question"`
-	Error      string `json:"error,omitempty"`
-	CreatedAt  string `json:"createdAt,omitempty"`
+	ID        string `json:"id,omitempty"`
+	Status    string `json:"status"`
+	Domain    string `json:"domain"`
+	Question  string `json:"question"`
+	Error     string `json:"error,omitempty"`
+	CreatedAt string `json:"createdAt,omitempty"`
 }
 
 // SignalBatchResponse is the response for sync batch creation.
