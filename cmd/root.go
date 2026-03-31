@@ -1,9 +1,13 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
+	"time"
 
+	"github.com/saberapp/cli/internal/update"
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 )
 
 // Global flags and state shared across all commands.
@@ -14,6 +18,10 @@ var (
 	yes        bool
 	apiURL     string
 	cliVersion string
+
+	// updateCh receives at most one message from the background update
+	// checker. It is set in PersistentPreRun and drained in PersistentPostRun.
+	updateCh <-chan string
 )
 
 func NewRootCmd(version, commit, date string) *cobra.Command {
@@ -27,6 +35,26 @@ lists, check credits, and more — all from your terminal.
 Get an API key at: https://ai.saber.app → Settings → API Keys`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			if shouldSkipUpdateCheck(cmd) {
+				return
+			}
+			updateCh = update.RunBackgroundCheck(cliVersion, 24*time.Hour)
+		},
+		PersistentPostRun: func(cmd *cobra.Command, args []string) {
+			if updateCh == nil {
+				return
+			}
+			// Non-blocking read: print notice only if the background
+			// check finished before the command completed.
+			select {
+			case msg, ok := <-updateCh:
+				if ok && msg != "" {
+					fmt.Fprintln(os.Stderr, msg)
+				}
+			default:
+			}
+		},
 		Run: func(cmd *cobra.Command, args []string) {
 			printCheatSheet(os.Stdout)
 		},
@@ -59,4 +87,27 @@ Get an API key at: https://ai.saber.app → Settings → API Keys`,
 	root.SetHelpCommand(newHelpCmd(root))
 
 	return root
+}
+
+// shouldSkipUpdateCheck returns true when the passive background version check
+// should not run (dev builds, machine-readable output, explicit opt-out, the
+// update command itself, or non-TTY stderr).
+func shouldSkipUpdateCheck(cmd *cobra.Command) bool {
+	if cliVersion == "dev" {
+		return true
+	}
+	if jsonOutput || quiet {
+		return true
+	}
+	if os.Getenv("SABER_NO_UPDATE_CHECK") != "" {
+		return true
+	}
+	// The explicit "update" command already performs its own check.
+	if cmd.Name() == "update" {
+		return true
+	}
+	if !term.IsTerminal(int(os.Stderr.Fd())) {
+		return true
+	}
+	return false
 }

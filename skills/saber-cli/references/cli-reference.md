@@ -378,10 +378,32 @@ Update flags: `--name`, `--prompt`, `--filters`, `--webhook`, `--webhook-secret`
 saber credits                                         # Show remaining credit balance
 saber connectors                                      # List configured connectors and status
 saber version                                         # Print version, commit, build date
-saber update                                          # Check for newer version
+saber update                                          # Check for newer version and upgrade
 saber init-claude                                     # Install Saber skill for Claude Code
 saber help [command]                                  # Show help
 ```
+
+## Update Checks
+
+The CLI automatically checks for new versions in the background (at most once
+every 24 hours). When an update is available, a one-line notice is printed to
+stderr after the command finishes:
+
+```
+Notice: Update available v0.1.5 -> v0.1.7. Run "saber update" to upgrade.
+```
+
+The check is non-blocking: it never slows down command execution. If the network
+request does not finish before the command exits, the notice is silently skipped.
+
+The background check is **skipped** when any of these conditions apply:
+- `--json` or `--quiet` flag is set
+- `SABER_NO_UPDATE_CHECK=1` environment variable is set
+- stderr is not a TTY (piped output, CI, AI agents)
+- The command is `saber update` (which already performs its own check)
+- Running a dev build (`version == "dev"`)
+
+The cached state is stored in `~/.saber/update-check.json`.
 
 ## Global Flags
 
@@ -393,6 +415,13 @@ Available on every command:
 | `--quiet` | `-Q` | Suppress all non-error output |
 | `--verbose` | `-v` | Log HTTP method, URL, status, rate-limit headers to stderr |
 | `--api-url` | | Override base API URL (default: `https://api.saber.app`) |
+
+## Environment Variables
+
+| Variable | Description |
+|---|---|
+| `SABER_API_KEY` | API key (overrides `~/.saber/credentials.json`) |
+| `SABER_NO_UPDATE_CHECK` | Set to any value to disable the background update check |
 
 ## Local Development
 
