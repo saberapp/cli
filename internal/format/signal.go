@@ -58,6 +58,66 @@ func PrintSignalCreated(w io.Writer, sig *client.Signal) {
 	fmt.Fprintf(w, "Signal created  ID: %s  Status: %s\n", sig.ID, sig.Status)
 }
 
+// PrintSignalList renders a table of signal list items.
+func PrintSignalList(w io.Writer, signals []client.SignalListItem, total int) {
+	tw := NewTabWriter(w)
+	fmt.Fprintln(tw, "ID\tDOMAIN\tQUESTION\tSTATUS\tANSWER TYPE\tCREATED")
+	for _, s := range signals {
+		domain := s.Domain
+		if domain == "" && s.ContactProfileURL != "" {
+			domain = TruncateString(s.ContactProfileURL, 30)
+		}
+		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\n",
+			s.ID,
+			domain,
+			TruncateString(s.Question, 35),
+			string(s.Status),
+			s.AnswerType,
+			s.CreatedAt.UTC().Format("2006-01-02 15:04"),
+		)
+	}
+	FlushTable(tw)
+	fmt.Fprintf(w, "\n%d of %d signals\n", len(signals), total)
+}
+
+// PrintBatchResult renders the result of a batch signal creation.
+func PrintBatchResult(w io.Writer, resp *client.SignalBatchResponse) {
+	if resp.IsAsync {
+		KV(w, [][2]string{
+			{"Mode:", "async"},
+			{"Batch ID:", resp.BatchID},
+			{"Total signals:", fmt.Sprintf("%d", resp.TotalSignals)},
+			{"Status:", resp.Status},
+			{"Submitted:", resp.SubmittedAt},
+		})
+		return
+	}
+	KV(w, [][2]string{
+		{"Total signals:", fmt.Sprintf("%d", resp.TotalSignals)},
+		{"Accepted:", fmt.Sprintf("%d", resp.Accepted)},
+		{"Rejected:", fmt.Sprintf("%d", resp.Rejected)},
+		{"Submitted:", resp.SubmittedAt},
+	})
+	if len(resp.Results) > 0 {
+		fmt.Fprintln(w)
+		tw := NewTabWriter(w)
+		fmt.Fprintln(tw, "ID\tDOMAIN\tQUESTION\tSTATUS")
+		for _, r := range resp.Results {
+			id := r.ID
+			if id == "" {
+				id = "\u2014"
+			}
+			fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n",
+				id,
+				r.Domain,
+				TruncateString(r.Question, 40),
+				r.Status,
+			)
+		}
+		FlushTable(tw)
+	}
+}
+
 // formatAnswer extracts the human-readable value from the API's typed answer envelope.
 // The API returns: {"type":"open_text","openText":{"value":"Yes"}}
 //

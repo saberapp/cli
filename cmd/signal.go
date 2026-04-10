@@ -12,14 +12,16 @@ import (
 
 func newSignalCmd() *cobra.Command {
 	var (
-		domain       string
-		profile      string
-		question     string
-		answerType   string
-		forceRefresh bool
-		webhook      string
-		noWait       bool
-		maxWait      int
+		domain           string
+		profile          string
+		question         string
+		answerType       string
+		forceRefresh     bool
+		webhook          string
+		noWait           bool
+		maxWait          int
+		templateID       string
+		verificationMode string
 	)
 
 	cmd := &cobra.Command{
@@ -34,7 +36,9 @@ ID immediately.
 Examples:
   saber signal --domain acme.com --question "Are they hiring engineers?"
   saber signal --domain acme.com --question "Headcount?" --answer-type number
+  saber signal --domain acme.com --template <templateId>
   saber signal --profile https://linkedin.com/in/johndoe --question "What is their current role?"
+  saber signal --domain acme.com --question "..." --verification-mode lenient
   saber signal --domain acme.com --question "..." --no-wait
   saber signal --domain acme.com --question "..." --json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -44,13 +48,16 @@ Examples:
 			if domain != "" && profile != "" {
 				return fmt.Errorf("--domain and --profile are mutually exclusive")
 			}
+			if question == "" && templateID == "" {
+				return fmt.Errorf("one of --question or --template is required")
+			}
 
 			c, ctx := mustClient()
 
 			if profile != "" {
-				return signalContact(c, ctx, profile, question, answerType, forceRefresh, webhook, noWait, maxWait)
+				return signalContact(c, ctx, profile, question, answerType, forceRefresh, webhook, noWait, maxWait, templateID, verificationMode)
 			}
-			return signalCompany(c, ctx, domain, question, answerType, forceRefresh, webhook, noWait, maxWait)
+			return signalCompany(c, ctx, domain, question, answerType, forceRefresh, webhook, noWait, maxWait, templateID, verificationMode)
 		},
 	}
 
@@ -58,14 +65,16 @@ Examples:
 	cmd.Flags().StringVarP(&profile, "profile", "p", "", "Contact LinkedIn profile URL")
 	cmd.Flags().StringVarP(&question, "question", "q", "", "Research question")
 	cmd.Flags().StringVarP(&answerType, "answer-type", "a", "", "Answer type: open_text, boolean, number, list, percentage, currency, url, json_schema")
+	cmd.Flags().StringVar(&templateID, "template", "", "Signal template ID (alternative to --question)")
+	cmd.Flags().StringVar(&verificationMode, "verification-mode", "", "Verification mode: strict (default) or lenient")
 	cmd.Flags().BoolVar(&forceRefresh, "force-refresh", false, "Bypass 12h cache")
 	cmd.Flags().StringVar(&webhook, "webhook", "", "Webhook URL (async, skips waiting)")
 	cmd.Flags().BoolVar(&noWait, "no-wait", false, "Async: print signal ID and exit immediately")
 	cmd.Flags().IntVar(&maxWait, "max-wait", 120, "Max seconds to wait for result (sync mode)")
 
-	_ = cmd.MarkFlagRequired("question")
-
 	cmd.AddCommand(newSignalGetCmd())
+	cmd.AddCommand(newSignalListCmd())
+	cmd.AddCommand(newSignalBatchCmd())
 
 	return cmd
 }
@@ -98,16 +107,18 @@ func newSignalGetCmd() *cobra.Command {
 	}
 }
 
-func signalCompany(c *client.Client, ctx context.Context, domain, question, answerType string, forceRefresh bool, webhook string, noWait bool, maxWait int) error {
+func signalCompany(c *client.Client, ctx context.Context, domain, question, answerType string, forceRefresh bool, webhook string, noWait bool, maxWait int, templateID, verificationMode string) error {
 	if err := confirmCreditAction(c, ctx); err != nil {
 		return err
 	}
 	req := client.CreateCompanySignalRequest{
-		Domain:       domain,
-		Question:     question,
-		AnswerType:   answerType,
-		ForceRefresh: forceRefresh,
-		WebhookURL:   webhook,
+		Domain:           domain,
+		Question:         question,
+		AnswerType:       answerType,
+		ForceRefresh:     forceRefresh,
+		WebhookURL:       webhook,
+		SignalTemplateID: templateID,
+		VerificationMode: verificationMode,
 	}
 	if noWait || webhook != "" {
 		sig, err := c.CreateCompanySignal(ctx, req)
@@ -124,7 +135,7 @@ func signalCompany(c *client.Client, ctx context.Context, domain, question, answ
 	})
 }
 
-func signalContact(c *client.Client, ctx context.Context, profile, question, answerType string, forceRefresh bool, webhook string, noWait bool, maxWait int) error {
+func signalContact(c *client.Client, ctx context.Context, profile, question, answerType string, forceRefresh bool, webhook string, noWait bool, maxWait int, templateID, verificationMode string) error {
 	if err := confirmCreditAction(c, ctx); err != nil {
 		return err
 	}
@@ -134,6 +145,8 @@ func signalContact(c *client.Client, ctx context.Context, profile, question, ans
 		AnswerType:        answerType,
 		ForceRefresh:      forceRefresh,
 		WebhookURL:        webhook,
+		SignalTemplateID:  templateID,
+		VerificationMode:  verificationMode,
 	}
 	if noWait || webhook != "" {
 		sig, err := c.CreateContactSignal(ctx, req)
@@ -148,6 +161,146 @@ func signalContact(c *client.Client, ctx context.Context, profile, question, ans
 		_, err := c.CreateContactSignalSync(ctx, req, maxWait, os.Stdout)
 		return err
 	})
+}
+
+func newSignalListCmd() *cobra.Command {
+	var (
+		domain         string
+		companyID      string
+		status         []string
+		fromDate       string
+		toDate         string
+		subscriptionID string
+		limit          int
+		offset         int
+	)
+	cmd := &cobra.Command{
+		Use:   "list",
+		Short: "List company signals with optional filters",
+		Example: `  saber signal list --domain acme.com
+  saber signal list --status completed --limit 10
+  saber signal list --domain acme.com --from-date 2024-01-01T00:00:00Z`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			c, ctx := mustClient()
+			params := client.ListSignalsParams{
+				Domain:         domain,
+				CompanyID:      companyID,
+				Status:         status,
+				FromDate:       fromDate,
+				ToDate:         toDate,
+				SubscriptionID: subscriptionID,
+				Limit:          limit,
+				Offset:         offset,
+			}
+			if jsonOutput {
+				_, err := c.ListSignals(ctx, params, os.Stdout)
+				return err
+			}
+			resp, err := c.ListSignals(ctx, params, nil)
+			if err != nil {
+				return err
+			}
+			if quiet {
+				return nil
+			}
+			if len(resp.Results) == 0 {
+				fmt.Fprintln(os.Stdout, "No signals found.")
+				return nil
+			}
+			format.PrintSignalList(os.Stdout, resp.Results, resp.Total)
+			return nil
+		},
+	}
+	cmd.Flags().StringVarP(&domain, "domain", "d", "", "Filter by company domain")
+	cmd.Flags().StringVar(&companyID, "company-id", "", "Filter by company ID")
+	cmd.Flags().StringArrayVar(&status, "status", nil, "Filter by status: processing, completed, failed (repeatable)")
+	cmd.Flags().StringVar(&fromDate, "from-date", "", "Filter signals completed after this date (RFC3339)")
+	cmd.Flags().StringVar(&toDate, "to-date", "", "Filter signals completed before this date (RFC3339)")
+	cmd.Flags().StringVar(&subscriptionID, "subscription-id", "", "Filter by subscription ID")
+	cmd.Flags().IntVar(&limit, "limit", 25, "Max results")
+	cmd.Flags().IntVar(&offset, "offset", 0, "Offset")
+	return cmd
+}
+
+func newSignalBatchCmd() *cobra.Command {
+	var (
+		domains         []string
+		questions       []string
+		answerType      string
+		async           bool
+		generateSummary bool
+		webhook         string
+		forceRefresh    bool
+	)
+	cmd := &cobra.Command{
+		Use:   "batch",
+		Short: "Create multiple signals in batch (Cartesian product of questions x domains)",
+		Long: `Submit multiple signal questions and domains to create signals using a Cartesian
+product pattern. Each question is combined with each domain.
+
+Provide questions via --question (repeatable). By default runs in sync mode
+(max 100 signals). Use --async for large batches up to 20,000 signals.`,
+		Example: `  saber signal batch --domain acme.com --domain google.com --question "What CRM do they use?" --question "Are they hiring?"
+  saber signal batch --domain acme.com --domain google.com --question "Revenue?" --generate-summary
+  saber signal batch --domain acme.com --question "..." --async`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(domains) == 0 {
+				return fmt.Errorf("at least one --domain is required")
+			}
+			if len(questions) == 0 {
+				return fmt.Errorf("at least one --question is required")
+			}
+
+			c, ctx := mustClient()
+			if err := confirmCreditAction(c, ctx); err != nil {
+				return err
+			}
+
+			var signals []client.BatchSignalItem
+			for _, q := range questions {
+				signals = append(signals, client.BatchSignalItem{
+					Question:     q,
+					AnswerType:   answerType,
+					WebhookURL:   webhook,
+					ForceRefresh: forceRefresh,
+				})
+			}
+
+			req := client.CreateSignalBatchRequest{
+				Signals:                   signals,
+				Domains:                   domains,
+				GenerateSummaryOnComplete: generateSummary,
+				Async:                     async,
+			}
+
+			sp := format.NewSpinner(os.Stderr, jsonOutput || quiet)
+			sp.Start("Submitting batch...")
+
+			if jsonOutput {
+				sp.Stop()
+				_, err := c.CreateSignalBatch(ctx, req, os.Stdout)
+				return err
+			}
+
+			resp, err := c.CreateSignalBatch(ctx, req, nil)
+			sp.Stop()
+			if err != nil {
+				return err
+			}
+			if !quiet {
+				format.PrintBatchResult(os.Stdout, resp)
+			}
+			return nil
+		},
+	}
+	cmd.Flags().StringArrayVarP(&domains, "domain", "d", nil, "Company domain (repeatable, required)")
+	cmd.Flags().StringArrayVarP(&questions, "question", "q", nil, "Research question (repeatable, required)")
+	cmd.Flags().StringVarP(&answerType, "answer-type", "a", "", "Answer type for inline questions")
+	cmd.Flags().BoolVar(&async, "async", false, "Async mode for large batches (up to 20,000 signals)")
+	cmd.Flags().BoolVar(&generateSummary, "generate-summary", false, "Auto-generate summaries when all signals complete")
+	cmd.Flags().StringVar(&webhook, "webhook", "", "Webhook URL for each signal in the batch")
+	cmd.Flags().BoolVar(&forceRefresh, "force-refresh", false, "Bypass the 12-hour answer cache")
+	return cmd
 }
 
 // runSyncSignal handles the spinner, JSON output, and display for synchronous signal calls.

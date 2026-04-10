@@ -257,6 +257,19 @@ func (c *Client) Put(ctx context.Context, path string, body any, dst any, rawDst
 	return c.Do(ctx, http.MethodPut, path, bodyBytes, nil, dst, rawDst)
 }
 
+// Patch is a convenience wrapper for PATCH requests.
+func (c *Client) Patch(ctx context.Context, path string, body any, dst any, rawDst io.Writer) error {
+	var bodyBytes []byte
+	if body != nil {
+		var err error
+		bodyBytes, err = json.Marshal(body)
+		if err != nil {
+			return fmt.Errorf("marshal request: %w", err)
+		}
+	}
+	return c.Do(ctx, http.MethodPatch, path, bodyBytes, nil, dst, rawDst)
+}
+
 // Delete is a convenience wrapper for DELETE requests.
 func (c *Client) Delete(ctx context.Context, path string) error {
 	return c.Do(ctx, http.MethodDelete, path, nil, nil, nil, nil)

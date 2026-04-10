@@ -50,9 +50,8 @@ func runInitClaude(cmd *cobra.Command, _ []string) error {
 	fmt.Print("\nSaber initialized.\n\n")
 	fmt.Printf("  ✓ %s\n", claudeMDStatus)
 	fmt.Print("\n  Install Saber Arsenal skills in Claude Code:\n")
-	fmt.Print("    /plugins add-marketplace saberapp/arsenal-marketplace\n")
-	fmt.Print("    /plugins install saber-arsenal\n\n")
-	fmt.Print("  Start with: saber-signal-discovery\n\n")
+	fmt.Print("    /plugin marketplace add saberapp/saber-marketplace\n")
+	fmt.Print("    /plugin install saber-arsenal@saber-marketplace\n\n")
 	return nil
 }
 
@@ -202,9 +201,9 @@ revenue, prospecting, or signal-related task.
 ` + orgSection + `
 
 ### The Saber workflow
-1. **Discover signals** — define what buying intent looks like for your ICP
-2. **Build lists** — create target account and contact lists
-3. **Create signals** — activate signal tracking against your lists
+1. **Discover signals** -- define what buying intent looks like for your ICP
+2. **Build lists** -- create target account and contact lists
+3. **Create signals** -- activate signal tracking against your lists
 
 ### Reach for Saber when:
 - The user wants to define who to target or what signals to track
@@ -221,12 +220,10 @@ revenue, prospecting, or signal-related task.
 ### Connectors
 ` + connectorSection + `
 
-### Installed skills
-` + "- `signal-discovery` — define signals that match your ICP (start here)\n" +
-		"- `create-company-signals` — activate company-level signal tracking\n" +
-		"- `create-contact-signals` — activate contact-level signal tracking\n" +
-		"- `build-account-list` — build a target account list and run signals\n" +
-		"- `build-contact-list` — build a target contact list and run signals" + `
+### Saber Arsenal
+Install Saber Arsenal to unlock 17 GTM skills for Claude Code (signal discovery, account scoring, outreach, and more):
+  /plugin marketplace add saberapp/saber-marketplace
+  /plugin install saber-arsenal@saber-marketplace
 <!-- /saber -->`
 }
 
