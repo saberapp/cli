@@ -3,39 +3,25 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"io/fs"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
 
 	"github.com/saberapp/cli/internal/client"
 	"github.com/saberapp/cli/internal/config"
-	"github.com/saberapp/cli/skills"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
-
-// legacySkillFiles lists the old flat skill files that should be removed
-// when upgrading to the directory-based skill format.
-var legacySkillFiles = []string{
-	"saber-signal-discovery.md",
-	"saber-create-company-signals.md",
-	"saber-create-contact-signals.md",
-	"saber-build-account-list.md",
-	"saber-build-contact-list.md",
-}
 
 var saberBlockRe = regexp.MustCompile(`(?s)<!-- saber -->.*?<!-- /saber -->`)
 
 func newInitClaudeCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "init-claude",
-		Short: "Initialize CLAUDE.md with Saber context and install the Saber skill",
-		Long: "Writes a <!-- saber --> block to CLAUDE.md in the current directory and\n" +
-			"installs the Saber skill to .claude/skills/saber-cli/ for use with Claude Code\n" +
-			"and other agent tools that support the Agent Skills standard.",
+		Short: "Initialize CLAUDE.md with Saber context",
+		Long: "Writes a <!-- saber --> block to CLAUDE.md in the current directory with\n" +
+			"org profile, connector status, and available CLI commands.",
 		RunE: runInitClaude,
 	}
 }
@@ -57,24 +43,15 @@ func runInitClaude(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("failed to update CLAUDE.md: %w", err)
 	}
 
-	skillStatus, err := installSkill()
-	if err != nil {
-		return fmt.Errorf("failed to install skill: %w", err)
-	}
-
-	migrated := removeLegacySkills()
-
 	if quiet {
 		return nil
 	}
 
 	fmt.Print("\nSaber initialized.\n\n")
 	fmt.Printf("  ✓ %s\n", claudeMDStatus)
-	fmt.Printf("  %s\n", skillStatus)
-	for _, m := range migrated {
-		fmt.Printf("  %s\n", m)
-	}
-	fmt.Print("\n  The /saber-cli skill covers the full Saber workflow.\n\n")
+	fmt.Print("\n  Install Saber Arsenal skills in Claude Code:\n")
+	fmt.Print("    /plugin marketplace add saberapp/saber-marketplace\n")
+	fmt.Print("    /plugin install saber-arsenal@saber-marketplace\n\n")
 	return nil
 }
 
@@ -243,8 +220,10 @@ revenue, prospecting, or signal-related task.
 ### Connectors
 ` + connectorSection + `
 
-### Installed skill
-- ` + "`/saber-cli`" + ` -- full Saber workflow: signal discovery, list building, signal activation
+### Saber Arsenal
+Install Saber Arsenal to unlock 17 GTM skills for Claude Code (signal discovery, account scoring, outreach, and more):
+  /plugin marketplace add saberapp/saber-marketplace
+  /plugin install saber-arsenal@saber-marketplace
 <!-- /saber -->`
 }
 
@@ -278,58 +257,4 @@ func injectClaudeMD(block string) (string, error) {
 		return "", err
 	}
 	return status, nil
-}
-
-// installSkill writes the saber-cli skill directory tree from the embedded FS
-// to .claude/skills/saber-cli/. Overwrites all files on every run to ensure
-// users always have the latest version.
-func installSkill() (string, error) {
-	destRoot := filepath.Join(".claude", "skills")
-
-	err := fs.WalkDir(skills.SaberCLI, ".", func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-
-		destPath := filepath.Join(destRoot, path)
-
-		if d.IsDir() {
-			return os.MkdirAll(destPath, 0755)
-		}
-
-		data, err := fs.ReadFile(skills.SaberCLI, path)
-		if err != nil {
-			return fmt.Errorf("failed to read embedded file %s: %w", path, err)
-		}
-
-		if err := os.WriteFile(destPath, data, 0644); err != nil {
-			return fmt.Errorf("failed to write %s: %w", destPath, err)
-		}
-
-		return nil
-	})
-	if err != nil {
-		return "", err
-	}
-
-	return "✓ installed saber-cli skill", nil
-}
-
-// removeLegacySkills cleans up old flat skill files from previous CLI versions.
-func removeLegacySkills() []string {
-	skillsDir := filepath.Join(".claude", "skills")
-	var statuses []string
-
-	for _, name := range legacySkillFiles {
-		path := filepath.Join(skillsDir, name)
-		if _, err := os.Stat(path); err == nil {
-			if err := os.Remove(path); err != nil {
-				statuses = append(statuses, fmt.Sprintf("  ⚠ could not remove legacy %s: %v", name, err))
-			} else {
-				statuses = append(statuses, fmt.Sprintf("  ✓ removed legacy %s", name))
-			}
-		}
-	}
-
-	return statuses
 }
