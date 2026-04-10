@@ -4,41 +4,24 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 
 	"github.com/saberapp/cli/internal/client"
 	"github.com/saberapp/cli/internal/config"
-	"github.com/saberapp/cli/skills"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
 
-type skillDef struct {
-	name    string
-	content string
-}
-
-var bundledSkills = []skillDef{
-	{"saber-signal-discovery", skills.SignalDiscovery},
-	{"saber-create-company-signals", skills.CreateCompanySignals},
-	{"saber-create-contact-signals", skills.CreateContactSignals},
-	{"saber-build-account-list", skills.BuildAccountList},
-	{"saber-build-contact-list", skills.BuildContactList},
-}
-
 var saberBlockRe = regexp.MustCompile(`(?s)<!-- saber -->.*?<!-- /saber -->`)
-var frontmatterVersionRe = regexp.MustCompile(`(?m)^version:\s*(\d+)`)
 
 func newInitClaudeCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "init-claude",
-		Short: "Initialize CLAUDE.md with Saber context and install Claude Code skills",
-		Long: "Writes a <!-- saber --> block to CLAUDE.md in the current directory and\n" +
-			"installs Saber skill files to .claude/skills/ for use with Claude Code.",
+		Short: "Initialize CLAUDE.md with Saber context",
+		Long: "Writes a <!-- saber --> block to CLAUDE.md in the current directory with\n" +
+			"org profile, connector status, and available CLI commands.",
 		RunE: runInitClaude,
 	}
 }
@@ -60,21 +43,16 @@ func runInitClaude(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("failed to update CLAUDE.md: %w", err)
 	}
 
-	skillStatuses, err := installSkills()
-	if err != nil {
-		return fmt.Errorf("failed to install skills: %w", err)
-	}
-
 	if quiet {
 		return nil
 	}
 
 	fmt.Print("\nSaber initialized.\n\n")
 	fmt.Printf("  ✓ %s\n", claudeMDStatus)
-	for _, s := range skillStatuses {
-		fmt.Printf("  %s\n", s)
-	}
-	fmt.Print("\n  Start with: /saber-signal-discovery\n\n")
+	fmt.Print("\n  Install Saber Arsenal skills in Claude Code:\n")
+	fmt.Print("    /plugins add-marketplace saberapp/arsenal-marketplace\n")
+	fmt.Print("    /plugins install saber-arsenal\n\n")
+	fmt.Print("  Start with: saber-signal-discovery\n\n")
 	return nil
 }
 
@@ -244,11 +222,11 @@ revenue, prospecting, or signal-related task.
 ` + connectorSection + `
 
 ### Installed skills
-- ` + "`/saber-signal-discovery`" + ` — define signals that match your ICP (start here)
-- ` + "`/saber-create-company-signals`" + ` — activate company-level signal tracking
-- ` + "`/saber-create-contact-signals`" + ` — activate contact-level signal tracking
-- ` + "`/saber-build-account-list`" + ` — build a target account list and run signals
-- ` + "`/saber-build-contact-list`" + ` — build a target contact list and run signals
+` + "- `saber-signal-discovery` — define signals that match your ICP (start here)\n" +
+		"- `saber-create-company-signals` — activate company-level signal tracking\n" +
+		"- `saber-create-contact-signals` — activate contact-level signal tracking\n" +
+		"- `saber-build-account-list` — build a target account list and run signals\n" +
+		"- `saber-build-contact-list` — build a target contact list and run signals" + `
 <!-- /saber -->`
 }
 
@@ -282,50 +260,4 @@ func injectClaudeMD(block string) (string, error) {
 		return "", err
 	}
 	return status, nil
-}
-
-func installSkills() ([]string, error) {
-	skillsDir := filepath.Join(".claude", "skills")
-	if err := os.MkdirAll(skillsDir, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create skills directory: %w", err)
-	}
-
-	var statuses []string
-	for _, s := range bundledSkills {
-		destPath := filepath.Join(skillsDir, s.name+".md")
-		bundledVersion := parseSkillVersion(s.content)
-
-		existing, err := os.ReadFile(destPath)
-		if err == nil {
-			installedVersion := parseSkillVersion(string(existing))
-			if installedVersion >= bundledVersion {
-				statuses = append(statuses, fmt.Sprintf("↷ skipped %s (already v%d)", s.name, installedVersion))
-				continue
-			}
-			if err := os.WriteFile(destPath, []byte(s.content), 0644); err != nil {
-				return nil, fmt.Errorf("failed to write skill %s: %w", s.name, err)
-			}
-			statuses = append(statuses, fmt.Sprintf("✓ updated %s (v%d → v%d)", s.name, installedVersion, bundledVersion))
-			continue
-		}
-
-		if !os.IsNotExist(err) {
-			return nil, fmt.Errorf("failed to read skill %s: %w", s.name, err)
-		}
-
-		if err := os.WriteFile(destPath, []byte(s.content), 0644); err != nil {
-			return nil, fmt.Errorf("failed to write skill %s: %w", s.name, err)
-		}
-		statuses = append(statuses, fmt.Sprintf("✓ installed %s (v%d)", s.name, bundledVersion))
-	}
-	return statuses, nil
-}
-
-func parseSkillVersion(content string) int {
-	m := frontmatterVersionRe.FindStringSubmatch(content)
-	if m == nil {
-		return 0
-	}
-	v, _ := strconv.Atoi(m[1])
-	return v
 }
