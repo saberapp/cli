@@ -497,7 +497,15 @@ saber subscription create --list <listId> --template <templateId> --frequency we
 saber credits                    # remaining credit balance
 saber connectors                 # configured integrations and status
 saber auth status                # current auth state
+saber update                     # check for newer version and upgrade
 ```
+
+### Update checks
+
+The CLI checks for updates in the background (once per 24h, non-blocking). A
+one-line notice is printed to stderr when an update is available. The check is
+skipped when `--json`, `--quiet`, or `SABER_NO_UPDATE_CHECK=1` is set, when
+stderr is not a TTY, or on dev builds.
 
 ## Global Flags
 

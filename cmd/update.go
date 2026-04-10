@@ -1,14 +1,12 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
-	"net/http"
 	"os"
 	"os/exec"
 	"strings"
-	"time"
 
+	"github.com/saberapp/cli/internal/update"
 	"github.com/spf13/cobra"
 )
 
@@ -23,7 +21,7 @@ func newUpdateCmd() *cobra.Command {
 				return nil
 			}
 
-			latest, err := fetchLatestCLIVersion()
+			latest, err := update.FetchLatestVersion()
 			if err != nil {
 				return fmt.Errorf("check for updates: %w", err)
 			}
@@ -47,39 +45,6 @@ func newUpdateCmd() *cobra.Command {
 			return nil
 		},
 	}
-}
-
-// fetchLatestCLIVersion queries the GitHub releases API for the latest release.
-func fetchLatestCLIVersion() (string, error) {
-	httpClient := &http.Client{Timeout: 10 * time.Second}
-	resp, err := httpClient.Get("https://api.github.com/repos/saberapp/cli/releases?per_page=20")
-	if err != nil {
-		return "", err
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("GitHub API returned %d", resp.StatusCode)
-	}
-
-	var releases []struct {
-		TagName string `json:"tag_name"`
-		Draft   bool   `json:"draft"`
-		Prerel  bool   `json:"prerelease"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&releases); err != nil {
-		return "", fmt.Errorf("parse releases: %w", err)
-	}
-
-	for _, r := range releases {
-		if r.Draft || r.Prerel {
-			continue
-		}
-		if strings.HasPrefix(r.TagName, "v") {
-			return strings.TrimPrefix(r.TagName, "v"), nil
-		}
-	}
-	return "", fmt.Errorf("no release found")
 }
 
 // runBrewUpgrade runs `brew update && brew upgrade saber`, streaming output to the terminal.
