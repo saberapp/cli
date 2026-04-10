@@ -222,11 +222,11 @@ revenue, prospecting, or signal-related task.
 ` + connectorSection + `
 
 ### Installed skills
-` + "- `saber-signal-discovery` — define signals that match your ICP (start here)\n" +
-		"- `saber-create-company-signals` — activate company-level signal tracking\n" +
-		"- `saber-create-contact-signals` — activate contact-level signal tracking\n" +
-		"- `saber-build-account-list` — build a target account list and run signals\n" +
-		"- `saber-build-contact-list` — build a target contact list and run signals" + `
+` + "- `signal-discovery` — define signals that match your ICP (start here)\n" +
+		"- `create-company-signals` — activate company-level signal tracking\n" +
+		"- `create-contact-signals` — activate contact-level signal tracking\n" +
+		"- `build-account-list` — build a target account list and run signals\n" +
+		"- `build-contact-list` — build a target contact list and run signals" + `
 <!-- /saber -->`
 }
 
