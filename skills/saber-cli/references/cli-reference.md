@@ -372,6 +372,78 @@ Update flags: `--name`, `--prompt`, `--filters`, `--webhook`, `--webhook-secret`
 **FUND_RAISED / RECENT_INVESTMENT / IPO:** `searchQueries`, `keywords`,
 `excludeKeywords`, `countries`, `minAmountUsd`, `maxLookbackDays`, `promptFilter`
 
+## Scoring
+
+Scoring turns signal results into fit/urgency scores (0-100) for companies and
+contacts. A profile groups rules. A rule maps one signal template to point
+values for a dimension. An assignment links a profile to a specific object and
+triggers a recompute.
+
+### Profiles
+
+```bash
+saber scoring profile create --type <company|contact> --name "<name>" [--description "<desc>"]
+saber scoring profile list
+saber scoring profile get <profileId>
+saber scoring profile update <profileId> --name "<name>" [--description "<desc>"]
+saber scoring profile delete <profileId>
+```
+
+Profile `--type` is immutable. Delete cascades to rules, assignments, and score
+results.
+
+### Rules
+
+```bash
+saber scoring rule upsert <profileId> --signal-template <id> --dimension <fit|urgency> [point-values]
+saber scoring rule list <profileId>
+saber scoring rule delete <profileId> <ruleId>
+```
+
+Upsert is keyed by `(profileId, signalTemplateId, dimension)` and triggers a
+recompute of every object assigned to the profile. Provide point values via
+exactly one shape:
+
+| Flag(s) | Use with | Example |
+|---|---|---|
+| `--true <n>`, `--false <n>` | `boolean` answer types | `--true 20 --false -5` |
+| `--range "min:max:points"` (repeatable) | `number`, `percentage`, `currency` | `--range "0:500:5" --range "500:5000:15"` |
+| `--choice "value:points"` (repeatable) | `list` answer types | `--choice "Salesforce:10" --choice "None:-10"` |
+| `--points '<json>'` | any | `--points '{"ranges":[{"min":0,"max":500,"points":5}]}'` |
+| `--points-file <path>` | any | `--points-file rules.json` |
+
+Numeric range upper bounds are exclusive. Mixing shapes returns an error.
+
+### Assignments
+
+```bash
+saber scoring assignment create --profile <id> --type <company|contact> --object <id>
+saber scoring assignment bulk --profile <id> --type <company|contact> --object <id> [--object <id> ...]
+saber scoring assignment list --type <company|contact> --object <id>
+saber scoring assignment delete <assignmentId>
+```
+
+Object IDs: domains for `company`, LinkedIn profile URLs for `contact`. `bulk`
+skips duplicates and only returns newly created assignments. Delete also clears
+the scores tied to the `(profile, object)` pair. Alias: `assignments`.
+
+### Scores
+
+```bash
+saber scoring scores --type <company|contact> --object <id> [--object <id> ...] [--detailed]
+saber scoring compute --type <company|contact> --object <id> [--object <id> ...]
+```
+
+| Flag | Description |
+|---|---|
+| `--type` | Object type: `company` or `contact` (required) |
+| `--object` | Object ID, repeatable (required). Domains for `company`, LinkedIn URLs for `contact`. |
+| `--detailed` | (`scores` only) Render each score with its per-rule contribution breakdown |
+
+`scores` returns one row per `(profile, object, dimension)` triple, including
+`signalCoverage` / `totalRules` so partial coverage is visible. `compute` is
+async and idempotent -- duplicate triggers attach to the running workflow.
+
 ## Other Commands
 
 ```bash

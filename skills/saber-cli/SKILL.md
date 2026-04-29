@@ -409,6 +409,112 @@ Present results and ask:
 For contact signals, pick 3-5 contacts the user already knows about (so they can judge
 accuracy), run signals, review, then confirm.
 
+## Scoring
+
+Scoring turns signal results into structured **fit** and **urgency** scores
+(0-100) for companies and contacts. It builds on top of signals -- any data the
+signal layer can ingest becomes scoreable.
+
+### Mental model
+
+1. **Profile** -- a named, org-scoped configuration bound to a single object
+   type (`company` or `contact`). Holds rules. One object can be assigned to
+   multiple profiles of the matching type.
+2. **Rule** -- within a profile, maps one signal template to point values for
+   one dimension (`fit` or `urgency`). The shape of point values depends on the
+   template's answer type.
+3. **Assignment** -- links a profile to a specific company or contact. Triggers
+   an immediate recompute.
+4. **Score result** -- the computed score for one `(profile, object, dimension)`
+   triple, with a per-rule contribution breakdown so it's always explainable.
+
+Score is `(earned / maxPossible) * 100`. **All rules count toward the
+denominator** regardless of whether a signal answer exists, so low-coverage
+scores stay conservatively low.
+
+### Manage profiles
+
+```bash
+saber scoring profile create --type company --name "EMEA Enterprise" \
+  --description "1000+ headcount in EMEA"
+saber scoring profile list
+saber scoring profile get <profileId>
+saber scoring profile update <profileId> --name "Enterprise ICP"
+saber scoring profile delete <profileId>          # cascades to rules, assignments, scores
+```
+
+Profile `--type` is immutable after creation.
+
+### Manage rules
+
+A rule's point-value shape depends on the answer type of the referenced signal
+template:
+
+```bash
+# Boolean signal
+saber scoring rule upsert <profileId> --signal-template <id> --dimension fit \
+  --true 20 --false -5
+
+# Number / percentage / currency signal -- ranges (max is exclusive)
+saber scoring rule upsert <profileId> --signal-template <id> --dimension fit \
+  --range "0:500:5" --range "500:5000:15" --range "5000:100000:25"
+
+# List signal
+saber scoring rule upsert <profileId> --signal-template <id> --dimension fit \
+  --choice "Salesforce:10" --choice "HubSpot:8" --choice "None:-10"
+
+# Or pass raw JSON / a JSON file matching the ScoringPointValues schema
+saber scoring rule upsert <profileId> --signal-template <id> --dimension urgency \
+  --points '{"ranges":[{"min":0,"max":500,"points":5}]}'
+saber scoring rule upsert <profileId> --signal-template <id> --dimension urgency \
+  --points-file rules.json
+
+saber scoring rule list <profileId>
+saber scoring rule delete <profileId> <ruleId>     # also recomputes assigned objects
+```
+
+Upserting or deleting a rule recomputes every object assigned to the profile,
+so scores never go silently stale.
+
+### Assign profiles to objects
+
+Object IDs are domains for companies and LinkedIn profile URLs for contacts.
+
+```bash
+# One object
+saber scoring assignment create --profile <id> --type company --object acme.com
+
+# Many at once -- duplicates are skipped, only new assignments are returned
+saber scoring assignment bulk --profile <id> --type company \
+  --object acme.com --object stripe.com --object framer.com
+
+# Profiles assigned to a single object
+saber scoring assignment list --type company --object acme.com
+
+saber scoring assignment delete <assignmentId>     # also clears its scores
+```
+
+### Read and recompute scores
+
+```bash
+# Compact table across all matching profiles + dimensions
+saber scoring scores --type company --object acme.com
+
+# Multiple objects in one call
+saber scoring scores --type company --object acme.com --object stripe.com
+
+# Detailed view with per-rule contribution breakdown
+saber scoring scores --type company --object acme.com --detailed
+
+# Trigger an async recompute (idempotent -- duplicate triggers attach to the
+# running workflow rather than starting a new one). Read results with `scores`.
+saber scoring compute --type company --object acme.com --object stripe.com
+```
+
+Recompute is also triggered automatically on profile assignment and on rule
+upsert/delete -- direct `compute` calls are mainly for refreshing against the
+latest signal data.
+
 ## Signal Flags
 
 | Flag | Default | Description |
