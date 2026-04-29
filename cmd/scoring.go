@@ -210,6 +210,7 @@ func newScoringRuleUpsertCmd() *cobra.Command {
 	var (
 		signalTemplate string
 		dimension      string
+		answerType     string
 		pointsJSON     string
 		pointsFile     string
 		boolTrue       float64
@@ -223,23 +224,33 @@ func newScoringRuleUpsertCmd() *cobra.Command {
 		Long: `Upsert a rule for (profileId, signalTemplateId, dimension). Triggers a recompute
 of every object assigned to the profile so existing scores reflect the change.
 
+--answer-type must match the referenced signal template's answer type. The
+server validates the point-values shape against it and returns 422 on mismatch
+rather than silently failing at compute time.
+
 Provide point values via exactly one of:
 
   Boolean signal:
-    --true 20 --false -5
+    --answer-type boolean --true 20 --false -5
 
   Number / percentage / currency signal:
-    --range "0:500:5" --range "500:5000:15"   (min:max:points, max is exclusive)
+    --answer-type number --range "0:500:5" --range "500:5000:15"
+    (min:max:points; max is exclusive)
 
   List signal:
-    --choice "Salesforce:10" --choice "HubSpot:8" --choice "None:-10"
+    --answer-type list --choice "Salesforce:10" --choice "HubSpot:8"
 
   Or provide raw JSON matching the ScoringPointValues schema:
-    --points '{"ranges":[{"min":0,"max":500,"points":5}]}'
-    --points-file rules.json`,
+    --answer-type number --points '{"ranges":[{"min":0,"max":500,"points":5}]}'
+    --answer-type list --points-file rules.json`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dim, err := parseDimension(dimension)
+			if err != nil {
+				return err
+			}
+
+			at, err := parseAnswerType(answerType)
 			if err != nil {
 				return err
 			}
@@ -253,6 +264,7 @@ Provide point values via exactly one of:
 			req := client.UpsertScoringRuleRequest{
 				SignalTemplateID: signalTemplate,
 				Dimension:        dim,
+				AnswerType:       at,
 				PointValues:      pv,
 			}
 			if jsonOutput {
@@ -271,6 +283,7 @@ Provide point values via exactly one of:
 	}
 	cmd.Flags().StringVar(&signalTemplate, "signal-template", "", "Signal template ID this rule scores")
 	cmd.Flags().StringVar(&dimension, "dimension", "", "Score dimension: fit or urgency")
+	cmd.Flags().StringVar(&answerType, "answer-type", "", "Signal answer type: boolean, number, percentage, currency, or list")
 	cmd.Flags().StringVar(&pointsJSON, "points", "", "Point values as JSON (matches the ScoringPointValues schema)")
 	cmd.Flags().StringVar(&pointsFile, "points-file", "", "Path to a JSON file containing point values")
 	cmd.Flags().Float64Var(&boolTrue, "true", 0, "Points awarded when boolean signal is true")
@@ -279,6 +292,7 @@ Provide point values via exactly one of:
 	cmd.Flags().StringArrayVar(&choices, "choice", nil, "List choice as value:points (repeatable)")
 	_ = cmd.MarkFlagRequired("signal-template")
 	_ = cmd.MarkFlagRequired("dimension")
+	_ = cmd.MarkFlagRequired("answer-type")
 	return cmd
 }
 
@@ -562,11 +576,22 @@ Returns immediately. Read results with: saber scoring scores --type ... --object
 			}
 			c, ctx := mustClient()
 			req := client.ComputeScoresRequest{ObjectType: t, ObjectIDs: objectIDs}
-			if err := c.TriggerScoreCompute(ctx, req); err != nil {
+			resp, err := c.TriggerScoreCompute(ctx, req)
+			if err != nil {
 				return err
 			}
+			if jsonOutput {
+				return json.NewEncoder(os.Stdout).Encode(resp)
+			}
 			if !quiet {
-				fmt.Fprintf(os.Stdout, "Recomputation queued for %d %s object(s)\n", len(objectIDs), t)
+				fmt.Fprintf(os.Stdout, "Recomputation queued: %d %s object(s)", resp.Queued, t)
+				if resp.Failed > 0 {
+					// Partial failure — surface so the user can retry the failed slice
+					// rather than assume everything went through. The server already
+					// logged per-object reasons; we just relay the count.
+					fmt.Fprintf(os.Stdout, " (%d dispatch failure(s); retry to pick those up)", resp.Failed)
+				}
+				fmt.Fprintln(os.Stdout)
 			}
 			return nil
 		},
@@ -703,4 +728,15 @@ func parseObjectType(s string) (string, error) {
 		return "", fmt.Errorf("type must be 'company' or 'contact', got %q", s)
 	}
 	return v, nil
+}
+
+// parseAnswerType validates a --answer-type flag value. Mirrors the API's
+// supported answer types — must match the signal template's answer_type.
+func parseAnswerType(s string) (string, error) {
+	v := strings.ToLower(strings.TrimSpace(s))
+	switch v {
+	case "boolean", "number", "percentage", "currency", "list":
+		return v, nil
+	}
+	return "", fmt.Errorf("answer-type must be one of boolean|number|percentage|currency|list, got %q", s)
 }

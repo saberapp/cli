@@ -116,9 +116,14 @@ type ScoringRule struct {
 }
 
 // UpsertScoringRuleRequest is the payload for PUT /v1/scoring/profiles/{profileId}/rules.
+//
+// AnswerType drives server-side validation of PointValues' shape: a mismatch
+// (e.g. ranges for a boolean signal) returns 422 INVALID_POINT_VALUES rather
+// than a silent compute failure later. Required by the API.
 type UpsertScoringRuleRequest struct {
 	SignalTemplateID string             `json:"signalTemplateId"`
 	Dimension        string             `json:"dimension"`
+	AnswerType       string             `json:"answerType"`
 	PointValues      ScoringPointValues `json:"pointValues"`
 }
 
@@ -271,7 +276,22 @@ func (c *Client) GetScores(ctx context.Context, objectType string, objectIDs []s
 	return rs, nil
 }
 
-// TriggerScoreCompute queues async recomputation. Returns 202 Accepted with no body.
-func (c *Client) TriggerScoreCompute(ctx context.Context, req ComputeScoresRequest) error {
-	return c.Post(ctx, "/v1/scoring/compute", req, nil, nil)
+// ComputeScoresResponse is the body of a 202 Accepted from POST /v1/scoring/compute.
+// `failed > 0` means some object dispatches failed (typically Temporal hiccups
+// for those specific calls); the request as a whole is "accepted" because at
+// least one workflow was queued. If every dispatch fails the API returns 502
+// instead of 202.
+type ComputeScoresResponse struct {
+	Queued int `json:"queued"`
+	Failed int `json:"failed"`
+}
+
+// TriggerScoreCompute queues async recomputation and returns the
+// {queued, failed} counts from the 202 response.
+func (c *Client) TriggerScoreCompute(ctx context.Context, req ComputeScoresRequest) (*ComputeScoresResponse, error) {
+	var resp ComputeScoresResponse
+	if err := c.Post(ctx, "/v1/scoring/compute", req, &resp, nil); err != nil {
+		return nil, err
+	}
+	return &resp, nil
 }
