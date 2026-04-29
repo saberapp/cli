@@ -58,7 +58,7 @@ func newScoringProfileCreateCmd() *cobra.Command {
 		Example: `  saber scoring profile create --type company --name "EMEA Enterprise"
   saber scoring profile create --type contact --name "Decision makers" --description "Senior engineering buyers"`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			t, err := client.ParseObjectType(profileType)
+			t, err := parseObjectType(profileType)
 			if err != nil {
 				return err
 			}
@@ -170,7 +170,7 @@ func newScoringProfileUpdateCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&name, "name", "", "New profile name")
-	cmd.Flags().StringVar(&description, "description", "", "New description (pass empty string to clear)")
+	cmd.Flags().StringVar(&description, "description", "", "New description (passing an empty string sets it to empty)")
 	_ = cmd.MarkFlagRequired("name")
 	return cmd
 }
@@ -239,7 +239,7 @@ Provide point values via exactly one of:
     --points-file rules.json`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			dim, err := client.ParseDimension(dimension)
+			dim, err := parseDimension(dimension)
 			if err != nil {
 				return err
 			}
@@ -352,7 +352,7 @@ profile. Triggers immediate score computation.`,
 		Example: `  saber scoring assignment create --profile <id> --type company --object acme.com
   saber scoring assignment create --profile <id> --type contact --object https://linkedin.com/in/jane`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			t, err := client.ParseObjectType(objectType)
+			t, err := parseObjectType(objectType)
 			if err != nil {
 				return err
 			}
@@ -398,7 +398,7 @@ func newScoringAssignmentBulkCmd() *cobra.Command {
 newly created assignments are returned).`,
 		Example: `  saber scoring assignment bulk --profile <id> --type company --object acme.com --object stripe.com`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			t, err := client.ParseObjectType(objectType)
+			t, err := parseObjectType(objectType)
 			if err != nil {
 				return err
 			}
@@ -440,7 +440,7 @@ func newScoringAssignmentListCmd() *cobra.Command {
 		Use:   "list",
 		Short: "List profile assignments for a single object",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			t, err := client.ParseObjectType(objectType)
+			t, err := parseObjectType(objectType)
 			if err != nil {
 				return err
 			}
@@ -502,7 +502,7 @@ Use --detailed to render each score with its per-rule contribution breakdown.`,
 		Example: `  saber scoring scores --type company --object acme.com
   saber scoring scores --type company --object acme.com --object stripe.com --detailed`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			t, err := client.ParseObjectType(objectType)
+			t, err := parseObjectType(objectType)
 			if err != nil {
 				return err
 			}
@@ -556,7 +556,7 @@ Returns immediately. Read results with: saber scoring scores --type ... --object
 		Example: `  saber scoring compute --type company --object acme.com
   saber scoring compute --type contact --object https://linkedin.com/in/jane`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			t, err := client.ParseObjectType(objectType)
+			t, err := parseObjectType(objectType)
 			if err != nil {
 				return err
 			}
@@ -685,4 +685,22 @@ func parseChoice(s string) (string, float64, error) {
 		return "", 0, fmt.Errorf("invalid choice points in %q: %w", s, err)
 	}
 	return key, points, nil
+}
+
+// parseDimension validates a --dimension flag value.
+func parseDimension(s string) (string, error) {
+	v := strings.ToLower(strings.TrimSpace(s))
+	if v != "fit" && v != "urgency" {
+		return "", fmt.Errorf("dimension must be 'fit' or 'urgency', got %q", s)
+	}
+	return v, nil
+}
+
+// parseObjectType validates a --type flag value (objectType / profileType).
+func parseObjectType(s string) (string, error) {
+	v := strings.ToLower(strings.TrimSpace(s))
+	if v != "company" && v != "contact" {
+		return "", fmt.Errorf("type must be 'company' or 'contact', got %q", s)
+	}
+	return v, nil
 }

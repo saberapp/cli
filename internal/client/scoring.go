@@ -2,10 +2,8 @@ package client
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"net/url"
-	"strings"
 	"time"
 )
 
@@ -276,22 +274,4 @@ func (c *Client) GetScores(ctx context.Context, objectType string, objectIDs []s
 // TriggerScoreCompute queues async recomputation. Returns 202 Accepted with no body.
 func (c *Client) TriggerScoreCompute(ctx context.Context, req ComputeScoresRequest) error {
 	return c.Post(ctx, "/v1/scoring/compute", req, nil, nil)
-}
-
-// ParseDimension validates a dimension flag value.
-func ParseDimension(s string) (string, error) {
-	v := strings.ToLower(strings.TrimSpace(s))
-	if v != "fit" && v != "urgency" {
-		return "", fmt.Errorf("dimension must be 'fit' or 'urgency', got %q", s)
-	}
-	return v, nil
-}
-
-// ParseObjectType validates an objectType / profileType flag value.
-func ParseObjectType(s string) (string, error) {
-	v := strings.ToLower(strings.TrimSpace(s))
-	if v != "company" && v != "contact" {
-		return "", fmt.Errorf("type must be 'company' or 'contact', got %q", s)
-	}
-	return v, nil
 }

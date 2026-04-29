@@ -5,6 +5,7 @@ import (
 	"io"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/saberapp/cli/internal/client"
 )
@@ -172,21 +173,21 @@ func PrintScoreResults(w io.Writer, scores []client.ScoreResult) {
 func summarisePointValues(p client.ScoringPointValues) string {
 	switch {
 	case p.True != nil || p.False != nil:
-		t, f := "—", "—"
+		trueLabel, falseLabel := "—", "—"
 		if p.True != nil {
-			t = trimFloat(*p.True)
+			trueLabel = trimFloat(*p.True)
 		}
 		if p.False != nil {
-			f = trimFloat(*p.False)
+			falseLabel = trimFloat(*p.False)
 		}
-		return fmt.Sprintf("true=%s, false=%s", t, f)
+		return fmt.Sprintf("true=%s, false=%s", trueLabel, falseLabel)
 	case len(p.Ranges) > 0:
 		parts := make([]string, 0, len(p.Ranges))
 		for _, r := range p.Ranges {
 			parts = append(parts, fmt.Sprintf("%s–%s→%s",
 				trimFloat(r.Min), trimFloat(r.Max), trimFloat(r.Points)))
 		}
-		return joinStrings(parts, ", ")
+		return strings.Join(parts, ", ")
 	case len(p.Choices) > 0:
 		keys := make([]string, 0, len(p.Choices))
 		for k := range p.Choices {
@@ -197,7 +198,7 @@ func summarisePointValues(p client.ScoringPointValues) string {
 		for _, k := range keys {
 			parts = append(parts, fmt.Sprintf("%s→%s", k, trimFloat(p.Choices[k])))
 		}
-		return joinStrings(parts, ", ")
+		return strings.Join(parts, ", ")
 	default:
 		return "—"
 	}
@@ -206,16 +207,4 @@ func summarisePointValues(p client.ScoringPointValues) string {
 // trimFloat formats a float without trailing zeros (e.g. 25.0 → "25", 12.5 → "12.5").
 func trimFloat(f float64) string {
 	return strconv.FormatFloat(f, 'f', -1, 64)
-}
-
-// joinStrings concatenates with sep, used here to avoid pulling in strings just for one helper.
-func joinStrings(ss []string, sep string) string {
-	out := ""
-	for i, s := range ss {
-		if i > 0 {
-			out += sep
-		}
-		out += s
-	}
-	return out
 }
