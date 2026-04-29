@@ -111,11 +111,9 @@ func PrintProfileAssignments(w io.Writer, assignments []client.ProfileAssignment
 
 // PrintScoreResult renders a single score with its contributions.
 func PrintScoreResult(w io.Writer, s *client.ScoreResult) {
-	delta := "—"
+	delta := trimFloat(s.Score)
 	if s.PreviousScore != nil {
-		delta = fmt.Sprintf("%s (was %s)", trimFloat(s.Score), trimFloat(*s.PreviousScore))
-	} else {
-		delta = trimFloat(s.Score)
+		delta = fmt.Sprintf("%s (was %s)", delta, trimFloat(*s.PreviousScore))
 	}
 	KV(w, [][2]string{
 		{"Profile:", s.ProfileID},
