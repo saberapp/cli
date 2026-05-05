@@ -190,6 +190,8 @@ func printCheatSheet(w io.Writer) {
 	entry(w, "saber template get <templateId>", "Get a template by ID")
 	entry(w, "saber template update <templateId> [flags]", "Update a template (creates new version)")
 	entry(w, "saber template delete <templateId>", "Soft-delete a template")
+	entry(w, "saber template extract propose --type <company|contact>", "Cluster historical ad-hoc signals into proposed templates")
+	entry(w, "saber template extract apply --from-file <plan.json>", "Apply a reviewed extract plan (creates templates + back-fills executions)")
 	fmt.Fprintln(w)
 
 	section(w, "SIGNAL SUMMARIES")

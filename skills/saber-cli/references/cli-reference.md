@@ -148,6 +148,40 @@ saber template delete <templateId>            # Soft-delete
 Update flags: `--name`, `--question`, `--description`, `--answer-type`, `--weight`.
 At least one flag is required.
 
+### Extract templates from historical ad-hoc signals
+
+Retroactively cluster ad-hoc signals (no `signal_template_version_id`) into
+reusable templates so they can be referenced by scoring rules. Two-step flow:
+propose → review → apply.
+
+```bash
+saber template extract propose --type <company|contact> [--max-candidates N]
+saber template extract apply --from-file <plan.json|->
+```
+
+| Flag | Default | Description |
+|---|---|---|
+| `--type` | required | `company` or `contact` (signal type to cluster) |
+| `--max-candidates` | server default (server caps at 500) | Cap candidates processed in one propose call |
+| `--from-file` | required | Path to a JSON plan, or `-` for stdin |
+
+`apply` accepts either a full propose response (the JSON object with a
+`clusters` key) or a bare clusters array. Re-running the same plan returns
+409 — drop already-attached executionIds before retrying. Only score-compatible
+answer types are clustered: `boolean`, `number`, `percentage`, `currency`,
+`list`.
+
+```bash
+# Propose, review, then apply
+saber template extract propose --type company --json > plan.json
+$EDITOR plan.json
+saber template extract apply --from-file plan.json
+
+# Or pipe straight through (--yes skips propose's credit-confirmation prompt)
+saber template extract propose --type contact --yes --json | \
+  saber template extract apply --from-file -
+```
+
 ## Signal Summaries
 
 AI-powered summaries that consolidate insights from completed signals into

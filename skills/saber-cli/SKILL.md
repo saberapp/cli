@@ -247,6 +247,39 @@ saber template update <templateId> --name "CRM Detection v2" --weight nice_to_ha
 saber template delete <templateId>
 ```
 
+#### Extract templates from historical ad-hoc signals
+
+If an org has been running ad-hoc signals (`saber signal --question ...`) before
+templates existed, those executions can be retroactively grouped into reusable
+templates so they're scoreable. The flow is two steps:
+
+```bash
+# 1. Propose: cluster historical ad-hoc signals into template proposals.
+#    The LLM groups equivalent questions and matches against existing templates
+#    rather than proposing duplicates.
+saber template extract propose --type company --json > plan.json
+
+# 2. Review plan.json — drop unwanted clusters, tweak names/questions.
+#    Each cluster is either kind="new" (create a fresh template) or
+#    kind="existing" (attach executions to a template that already covers
+#    the same intent).
+
+# 3. Apply: creates templates and back-fills the executions in one transaction.
+saber template extract apply --from-file plan.json
+```
+
+Or pipe straight through if you trust the proposal as-is. `--yes` skips the
+credit-confirmation prompt that propose would otherwise block on:
+
+```bash
+saber template extract propose --type contact --yes --json | \
+  saber template extract apply --from-file -
+```
+
+Re-running the same plan returns 409 — drop already-attached executionIds
+before retrying. Only score-compatible answer types (boolean, number,
+percentage, currency, list) are clustered; open-text answers are skipped.
+
 ### Company signals -- spot check
 
 Run a question against a single domain:

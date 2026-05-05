@@ -113,3 +113,100 @@ func (c *Client) DeleteSignalTemplate(ctx context.Context, id string) error {
 	path := "/v1/companies/signals/templates/" + url.PathEscape(id)
 	return c.Delete(ctx, path)
 }
+
+// --- Signal-template extract (v1.5 stop-gap) ---
+//
+// Endpoints back the "extract templates from ad-hoc signals" flow: cluster
+// historical ad-hoc signal_executions into reusable templates so they can be
+// referenced by scoring rules.
+
+// ExtractClusterKind values for ExtractCluster.Kind. Mirrors the platform-side
+// `ClusterKind` enum so callers can switch on Kind without magic-string literals.
+const (
+	ExtractClusterKindNew      = "new"
+	ExtractClusterKindExisting = "existing"
+)
+
+// ExtractCluster is one proposed action in the propose/apply flow. Discriminated
+// by Kind (see ExtractClusterKind* constants):
+//   - "new":      Name + Question + AnswerType describe a template to create
+//   - "existing": TemplateID references an existing template to attach to
+//
+// The fields not relevant to a given Kind are zero/empty; omitempty keeps them
+// out of the wire payload. SampleQuestions and Notes are propose-side only and
+// stripped server-side on apply.
+type ExtractCluster struct {
+	Kind string `json:"kind"`
+
+	Name       string `json:"name,omitempty"`
+	Question   string `json:"question,omitempty"`
+	AnswerType string `json:"answerType,omitempty"`
+
+	TemplateID string `json:"templateId,omitempty"`
+
+	ExecutionIDs    []string `json:"executionIds"`
+	SampleQuestions []string `json:"sampleQuestions,omitempty"`
+	Notes           string   `json:"notes,omitempty"`
+}
+
+// ExtractProposeRequest is the body of POST /v1/signal-templates/extract/propose.
+type ExtractProposeRequest struct {
+	SignalType    string `json:"signalType"`
+	MaxCandidates int    `json:"maxCandidates,omitempty"`
+}
+
+// ExtractProposal is the response of /propose. Carries the clusters plus the
+// pagination state so the caller knows whether more candidates remain.
+type ExtractProposal struct {
+	Clusters            []ExtractCluster `json:"clusters"`
+	TotalCandidates     int              `json:"totalCandidates"`
+	ProcessedCandidates int              `json:"processedCandidates"`
+	HasMore             bool             `json:"hasMore"`
+}
+
+// ExtractAppliedTemplate is one row in the /apply response.
+type ExtractAppliedTemplate struct {
+	Kind       string `json:"kind"`
+	TemplateID string `json:"templateId"`
+	VersionID  string `json:"versionId"`
+	Name       string `json:"name"`
+	Attached   int    `json:"attached"`
+}
+
+// ExtractApplyResult is the response of /apply.
+type ExtractApplyResult struct {
+	Created []ExtractAppliedTemplate `json:"created"`
+}
+
+// ExtractApplyRequest is the body of POST /v1/signal-templates/extract/apply.
+type ExtractApplyRequest struct {
+	Clusters []ExtractCluster `json:"clusters"`
+}
+
+// ProposeExtractTemplates triggers LLM clustering of ad-hoc signal candidates
+// for the org behind the API key. Returns clusters that can be edited locally
+// and replayed via ApplyExtractTemplates.
+func (c *Client) ProposeExtractTemplates(ctx context.Context, req ExtractProposeRequest, rawDst io.Writer) (*ExtractProposal, error) {
+	if rawDst != nil {
+		return nil, c.Post(ctx, "/v1/signal-templates/extract/propose", req, nil, rawDst)
+	}
+	var p ExtractProposal
+	if err := c.Post(ctx, "/v1/signal-templates/extract/propose", req, &p, nil); err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+// ApplyExtractTemplates creates new templates and/or attaches executions to
+// existing ones in a single transaction. Re-running the same plan returns 409
+// — drop the already-attached executionIds before retrying.
+func (c *Client) ApplyExtractTemplates(ctx context.Context, req ExtractApplyRequest, rawDst io.Writer) (*ExtractApplyResult, error) {
+	if rawDst != nil {
+		return nil, c.Post(ctx, "/v1/signal-templates/extract/apply", req, nil, rawDst)
+	}
+	var r ExtractApplyResult
+	if err := c.Post(ctx, "/v1/signal-templates/extract/apply", req, &r, nil); err != nil {
+		return nil, err
+	}
+	return &r, nil
+}

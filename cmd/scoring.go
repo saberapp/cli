@@ -722,6 +722,8 @@ func parseDimension(s string) (string, error) {
 }
 
 // parseObjectType validates a --type flag value (objectType / profileType).
+// Returns the canonical lowercase form. The signal-template extract endpoints
+// use uppercase (`COMPANY`/`CONTACT`) — see parseExtractSignalType for that.
 func parseObjectType(s string) (string, error) {
 	v := strings.ToLower(strings.TrimSpace(s))
 	if v != "company" && v != "contact" {

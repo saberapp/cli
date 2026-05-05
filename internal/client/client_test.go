@@ -1,6 +1,7 @@
 package client
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -65,5 +66,54 @@ func TestErrorBodyMessage(t *testing.T) {
 				t.Errorf("message() = %q, want %q", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestErrorBodyDetails(t *testing.T) {
+	tests := []struct {
+		name     string
+		body     errorBody
+		wantLen  int
+		contains string
+	}{
+		{
+			name:    "no alreadyAttached",
+			body:    errorBody{Message: "ok"},
+			wantLen: 0,
+		},
+		{
+			name: "alreadyAttached surfaces ids",
+			body: errorBody{
+				AlreadyAttached: []string{"abc-1", "abc-2", "abc-3"},
+			},
+			wantLen:  1,
+			contains: "alreadyAttached (3): abc-1, abc-2, abc-3",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.body.details()
+			if len(got) != tt.wantLen {
+				t.Fatalf("details() len = %d, want %d (got %v)", len(got), tt.wantLen, got)
+			}
+			if tt.contains != "" && !strings.Contains(got[0], tt.contains) {
+				t.Errorf("details()[0] = %q, expected to contain %q", got[0], tt.contains)
+			}
+		})
+	}
+}
+
+func TestAPIErrorErrorIncludesDetails(t *testing.T) {
+	e := &APIError{
+		StatusCode: 409,
+		Message:    "one or more executionIds are already attached",
+		Details:    []string{"alreadyAttached (2): id-1, id-2"},
+	}
+	msg := e.Error()
+	if !strings.Contains(msg, "API error 409") {
+		t.Errorf("missing status: %q", msg)
+	}
+	if !strings.Contains(msg, "alreadyAttached (2): id-1, id-2") {
+		t.Errorf("missing details: %q", msg)
 	}
 }
