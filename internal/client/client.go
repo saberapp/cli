@@ -45,27 +45,49 @@ func New(baseURL, apiKey, version string, verbose bool, stderr io.Writer) *Clien
 type APIError struct {
 	StatusCode int
 	Message    string
-	RetryAfter int // seconds, for 429
+	RetryAfter int      // seconds, for 429
+	Details    []string // structured detail lines surfaced in Error() (e.g. 409 alreadyAttached IDs)
 }
 
 func (e *APIError) Error() string {
+	base := fmt.Sprintf("API error %d: %s", e.StatusCode, e.Message)
 	if e.RetryAfter > 0 {
-		return fmt.Sprintf("API error %d: %s (retry after %ds)", e.StatusCode, e.Message, e.RetryAfter)
+		base = fmt.Sprintf("%s (retry after %ds)", base, e.RetryAfter)
 	}
-	return fmt.Sprintf("API error %d: %s", e.StatusCode, e.Message)
+	if len(e.Details) > 0 {
+		base = base + "\n  " + strings.Join(e.Details, "\n  ")
+	}
+	return base
 }
 
 // errorBody handles both response formats:
 // - Go Platform: {"error":{"type":"...","code":"...","message":"...","requestId":"..."}}
 // - Rate limiter: {"statusCode":429,"message":"...","retryAfter":<seconds>}
+//
+// AlreadyAttached is surfaced by the signal-template extract apply endpoint on
+// 409 — the IDs the caller needs to drop before retrying. NestJS bundles it
+// into a structured ConflictException; without parsing it here, the user only
+// sees the message and can't act on the retry instruction.
 type errorBody struct {
-	StatusCode int    `json:"statusCode"`
-	Message    string `json:"message"`
-	RetryAfter int    `json:"retryAfter"`
-	Error      *struct {
+	StatusCode      int      `json:"statusCode"`
+	Message         string   `json:"message"`
+	RetryAfter      int      `json:"retryAfter"`
+	AlreadyAttached []string `json:"alreadyAttached"`
+	Error           *struct {
 		Message string `json:"message"`
 		Code    string `json:"code"`
 	} `json:"error"`
+}
+
+// details returns structured lines extracted from the body (e.g. 409 conflict
+// IDs) that should be appended to the user-visible error message.
+func (e *errorBody) details() []string {
+	if len(e.AlreadyAttached) == 0 {
+		return nil
+	}
+	return []string{
+		fmt.Sprintf("alreadyAttached (%d): %s", len(e.AlreadyAttached), strings.Join(e.AlreadyAttached, ", ")),
+	}
 }
 
 func (e *errorBody) message() string {
@@ -178,7 +200,7 @@ func (c *Client) Do(ctx context.Context, method, path string, bodyBytes []byte, 
 			if msg == "" {
 				msg = http.StatusText(resp.StatusCode)
 			}
-			lastErr = &APIError{StatusCode: resp.StatusCode, Message: msg}
+			lastErr = &APIError{StatusCode: resp.StatusCode, Message: msg, Details: eb.details()}
 			continue
 		}
 
@@ -189,7 +211,7 @@ func (c *Client) Do(ctx context.Context, method, path string, bodyBytes []byte, 
 			if msg == "" {
 				msg = http.StatusText(resp.StatusCode)
 			}
-			return &APIError{StatusCode: resp.StatusCode, Message: msg}
+			return &APIError{StatusCode: resp.StatusCode, Message: msg, Details: eb.details()}
 		}
 
 		// Success — no content

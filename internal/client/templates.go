@@ -120,8 +120,15 @@ func (c *Client) DeleteSignalTemplate(ctx context.Context, id string) error {
 // historical ad-hoc signal_executions into reusable templates so they can be
 // referenced by scoring rules.
 
+// ExtractClusterKind values for ExtractCluster.Kind. Mirrors the platform-side
+// `ClusterKind` enum so callers can switch on Kind without magic-string literals.
+const (
+	ExtractClusterKindNew      = "new"
+	ExtractClusterKindExisting = "existing"
+)
+
 // ExtractCluster is one proposed action in the propose/apply flow. Discriminated
-// by Kind:
+// by Kind (see ExtractClusterKind* constants):
 //   - "new":      Name + Question + AnswerType describe a template to create
 //   - "existing": TemplateID references an existing template to attach to
 //

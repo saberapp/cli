@@ -268,10 +268,11 @@ saber template extract propose --type company --json > plan.json
 saber template extract apply --from-file plan.json
 ```
 
-Or pipe straight through if you trust the proposal as-is:
+Or pipe straight through if you trust the proposal as-is. `--yes` skips the
+credit-confirmation prompt that propose would otherwise block on:
 
 ```bash
-saber template extract propose --type contact --json | \
+saber template extract propose --type contact --yes --json | \
   saber template extract apply --from-file -
 ```
 

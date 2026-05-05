@@ -67,7 +67,7 @@ func PrintExtractProposal(w io.Writer, p *client.ExtractProposal) {
 
 	newCount, existingCount := 0, 0
 	for _, c := range p.Clusters {
-		if c.Kind == "existing" {
+		if c.Kind == client.ExtractClusterKindExisting {
 			existingCount++
 		} else {
 			newCount++
@@ -87,7 +87,7 @@ func PrintExtractProposal(w io.Writer, p *client.ExtractProposal) {
 	for _, c := range p.Clusters {
 		nameOrTpl := c.Name
 		question := TruncateString(c.Question, 50)
-		if c.Kind == "existing" {
+		if c.Kind == client.ExtractClusterKindExisting {
 			nameOrTpl = c.TemplateID
 			if len(c.SampleQuestions) > 0 {
 				question = TruncateString(c.SampleQuestions[0], 50)
@@ -121,7 +121,7 @@ func PrintExtractApplyResult(w io.Writer, r *client.ExtractApplyResult) {
 
 	newCount, existingCount, totalAttached := 0, 0, 0
 	for _, c := range r.Created {
-		if c.Kind == "existing" {
+		if c.Kind == client.ExtractClusterKindExisting {
 			existingCount++
 		} else {
 			newCount++

@@ -177,8 +177,8 @@ saber template extract propose --type company --json > plan.json
 $EDITOR plan.json
 saber template extract apply --from-file plan.json
 
-# Or pipe straight through
-saber template extract propose --type contact --json | \
+# Or pipe straight through (--yes skips propose's credit-confirmation prompt)
+saber template extract propose --type contact --yes --json | \
   saber template extract apply --from-file -
 ```
 

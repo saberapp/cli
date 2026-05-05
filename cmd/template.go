@@ -261,6 +261,12 @@ The proposal is read-only — no templates are created until you run apply.`,
 				return err
 			}
 			c, ctx := mustClient()
+			// Propose drives an LLM call per answer-type bucket server-side, so
+			// it consumes credits the same way `saber signal` does. Gate behind
+			// the standard confirmation prompt; --yes/--quiet skip it.
+			if err := confirmCreditAction(c, ctx); err != nil {
+				return err
+			}
 			req := client.ExtractProposeRequest{
 				SignalType:    st,
 				MaxCandidates: maxCandidates,
@@ -280,7 +286,7 @@ The proposal is read-only — no templates are created until you run apply.`,
 		},
 	}
 	cmd.Flags().StringVar(&signalType, "type", "", "Signal type to cluster: company or contact")
-	cmd.Flags().IntVar(&maxCandidates, "max-candidates", 0, "Max candidates to process (server caps at 500)")
+	cmd.Flags().IntVar(&maxCandidates, "max-candidates", 0, "Max candidates to process (default 100, server hard cap 500)")
 	_ = cmd.MarkFlagRequired("type")
 	return cmd
 }
@@ -300,7 +306,7 @@ before retrying.
 The plan can be either a full propose response (the JSON object with a
 "clusters" key) or a bare clusters array. Use "-" to read from stdin.`,
 		Example: `  saber template extract apply --from-file plan.json
-  saber template extract propose --type company --json | saber template extract apply --from-file -`,
+  saber template extract propose --type company --yes --json | saber template extract apply --from-file -`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			clusters, err := loadExtractClusters(fromFile)
 			if err != nil {
@@ -358,6 +364,9 @@ func loadExtractClusters(path string) ([]client.ExtractCluster, error) {
 	}
 
 	trimmed := strings.TrimSpace(string(raw))
+	if trimmed == "" {
+		return nil, fmt.Errorf("plan is empty")
+	}
 	if strings.HasPrefix(trimmed, "[") {
 		var clusters []client.ExtractCluster
 		if err := json.Unmarshal(raw, &clusters); err != nil {
