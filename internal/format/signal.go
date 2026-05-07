@@ -1,6 +1,7 @@
 package format
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -148,13 +149,24 @@ func formatAnswer(answer any) string {
 	}
 
 	// Try to extract the value from the typed sub-object.
-	// Possible keys: openText, number, boolean, list, percentage, currency, url
-	typeKeys := []string{answerType, "openText", "number", "boolean", "list", "percentage", "currency", "url"}
+	// Possible keys: openText, number, boolean, list, percentage, currency, url, jsonSchema
+	typeKeys := []string{answerType, "openText", "number", "boolean", "list", "percentage", "currency", "url", "jsonSchema"}
 	for _, key := range typeKeys {
 		raw, ok := envelope[key]
 		if !ok {
 			continue
 		}
+
+		// json_schema answers have no "value" wrapper; the payload is the
+		// object itself. Render as indented JSON so it's readable.
+		if key == "jsonSchema" || answerType == "json_schema" {
+			var pretty bytes.Buffer
+			if err := json.Indent(&pretty, raw, "", "  "); err == nil {
+				return pretty.String()
+			}
+			return string(raw)
+		}
+
 		var sub map[string]json.RawMessage
 		if err := json.Unmarshal(raw, &sub); err != nil {
 			continue

@@ -35,6 +35,7 @@ saber signal --domain <domain> --template <templateId> [flags]
 | `--question` | `-q` | required* | Research question (max 500 chars) |
 | `--template` | | | Signal template ID (alternative to `--question`) |
 | `--answer-type` | `-a` | `open_text` | Response format (see answer types below) |
+| `--output-schema` | | | JSON Schema string or `@file` path (required when answer-type is `json_schema`) |
 | `--verification-mode` | | `strict` | `strict` or `lenient` |
 | `--force-refresh` | | `false` | Bypass the 12-hour answer cache |
 | `--no-wait` | | `false` | Return signal ID immediately without polling |
@@ -56,6 +57,7 @@ saber signal --profile <linkedin-url> --template <templateId> [flags]
 | `--question` | `-q` | required* | Research question (max 500 chars) |
 | `--template` | | | Signal template ID (alternative to `--question`) |
 | `--answer-type` | `-a` | `open_text` | Response format (see answer types below) |
+| `--output-schema` | | | JSON Schema string or `@file` path (required when answer-type is `json_schema`) |
 | `--verification-mode` | | `strict` | `strict` or `lenient` |
 | `--force-refresh` | | `false` | Bypass the 12-hour answer cache |
 | `--no-wait` | | `false` | Return signal ID immediately without polling |
@@ -116,6 +118,7 @@ saber signal batch --domain <d> --question <q> [flags]
 | `percentage` | Percentage value | "What is their YoY growth rate?" |
 | `currency` | Monetary amount | "What is their ARR?" |
 | `url` | URL answer | "Where is their careers page?" |
+| `json_schema` | Custom structured output (requires `--output-schema`) | "What are their pricing tiers?" |
 
 ## Signal Templates
 
@@ -134,6 +137,7 @@ saber template create --name "<name>" --question "<question>" [flags]
 | `--question` | `-q` | required | Research question |
 | `--description` | | | Optional description |
 | `--answer-type` | `-a` | `open_text` | Answer type |
+| `--output-schema` | | | JSON Schema string or `@file` path (required when answer-type is `json_schema`) |
 | `--weight` | | | `important`, `nice_to_have`, `not_important` |
 
 ### Manage templates
@@ -145,7 +149,7 @@ saber template update <templateId> [flags]    # PATCH semantics, creates new ver
 saber template delete <templateId>            # Soft-delete
 ```
 
-Update flags: `--name`, `--question`, `--description`, `--answer-type`, `--weight`.
+Update flags: `--name`, `--question`, `--description`, `--answer-type`, `--output-schema`, `--weight`.
 At least one flag is required.
 
 ### Extract templates from historical ad-hoc signals

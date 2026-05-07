@@ -114,7 +114,7 @@ if you don't intend to run on a schedule).`,
 	cmd.Flags().StringVar(&listID, "list", "", "Company list ID to run signals against (required)")
 	cmd.Flags().StringVar(&name, "name", "", "Subscription name (required when not using --template)")
 	cmd.Flags().StringVar(&question, "question", "", "Signal question (required when not using --template)")
-	cmd.Flags().StringVarP(&answerType, "answer-type", "a", "", "Answer type: boolean, open_text, number, list, percentage, currency, url")
+	cmd.Flags().StringVarP(&answerType, "answer-type", "a", "", "Answer type: open_text, boolean, number, list, percentage, currency, url, json_schema")
 	cmd.Flags().StringVar(&frequency, "frequency", "", "Schedule frequency: daily, weekly, or monthly")
 	cmd.Flags().StringVar(&cronExpr, "cron", "", "Custom cron expression, e.g. \"0 9 * * 1\" (mutually exclusive with --frequency)")
 	cmd.Flags().StringVar(&timezone, "timezone", "UTC", "IANA timezone for scheduling, e.g. Europe/Amsterdam")

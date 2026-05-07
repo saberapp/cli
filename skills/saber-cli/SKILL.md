@@ -556,7 +556,8 @@ latest signal data.
 | `--profile` / `-p` | -- | LinkedIn profile URL (contact signals) |
 | `--question` / `-q` | required* | Research question (max 500 chars) |
 | `--template` | -- | Signal template ID (alternative to `--question`) |
-| `--answer-type` / `-a` | `open_text` | `open_text`, `boolean`, `number`, `list`, `percentage`, `currency`, `url` |
+| `--answer-type` / `-a` | `open_text` | `open_text`, `boolean`, `number`, `list`, `percentage`, `currency`, `url`, `json_schema` |
+| `--output-schema` | -- | JSON Schema string or `@file` path (required when answer-type is `json_schema`) |
 | `--verification-mode` | `strict` | `strict` or `lenient` |
 | `--force-refresh` | false | Bypass 12h result cache |
 | `--no-wait` | false | Return signal ID immediately without polling |

@@ -1,6 +1,7 @@
 package format
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 
@@ -21,18 +22,26 @@ func PrintSignalTemplate(w io.Writer, tmpl *client.SignalTemplate) {
 	if tmpl.DeletedAt != nil {
 		deletedAt = tmpl.DeletedAt.UTC().Format("2006-01-02 15:04 UTC")
 	}
-	KV(w, [][2]string{
+	rows := [][2]string{
 		{"ID:", tmpl.ID},
 		{"Name:", tmpl.Name},
 		{"Version:", fmt.Sprintf("%d", tmpl.Version)},
 		{"Question:", tmpl.Question},
 		{"Answer type:", tmpl.AnswerType},
-		{"Weight:", weight},
-		{"Description:", TruncateString(description, 100)},
-		{"Source:", tmpl.Source},
-		{"Created:", tmpl.CreatedAt.UTC().Format("2006-01-02 15:04 UTC")},
-		{"Deleted:", deletedAt},
-	})
+	}
+	if len(tmpl.OutputSchema) > 0 {
+		if b, err := json.MarshalIndent(tmpl.OutputSchema, "", "  "); err == nil {
+			rows = append(rows, [2]string{"Output schema:", string(b)})
+		}
+	}
+	rows = append(rows,
+		[2]string{"Weight:", weight},
+		[2]string{"Description:", TruncateString(description, 100)},
+		[2]string{"Source:", tmpl.Source},
+		[2]string{"Created:", tmpl.CreatedAt.UTC().Format("2006-01-02 15:04 UTC")},
+		[2]string{"Deleted:", deletedAt},
+	)
+	KV(w, rows)
 }
 
 // PrintSignalTemplates renders a table of signal templates.
