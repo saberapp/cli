@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -16,6 +17,7 @@ func newSignalCmd() *cobra.Command {
 		profile          string
 		question         string
 		answerType       string
+		outputSchemaStr  string
 		forceRefresh     bool
 		webhook          string
 		noWait           bool
@@ -52,12 +54,17 @@ Examples:
 				return fmt.Errorf("one of --question or --template is required")
 			}
 
+			outputSchema, err := parseOutputSchema(outputSchemaStr)
+			if err != nil {
+				return err
+			}
+
 			c, ctx := mustClient()
 
 			if profile != "" {
-				return signalContact(c, ctx, profile, question, answerType, forceRefresh, webhook, noWait, maxWait, templateID, verificationMode)
+				return signalContact(c, ctx, profile, question, answerType, outputSchema, forceRefresh, webhook, noWait, maxWait, templateID, verificationMode)
 			}
-			return signalCompany(c, ctx, domain, question, answerType, forceRefresh, webhook, noWait, maxWait, templateID, verificationMode)
+			return signalCompany(c, ctx, domain, question, answerType, outputSchema, forceRefresh, webhook, noWait, maxWait, templateID, verificationMode)
 		},
 	}
 
@@ -65,6 +72,7 @@ Examples:
 	cmd.Flags().StringVarP(&profile, "profile", "p", "", "Contact LinkedIn profile URL")
 	cmd.Flags().StringVarP(&question, "question", "q", "", "Research question")
 	cmd.Flags().StringVarP(&answerType, "answer-type", "a", "", "Answer type: open_text, boolean, number, list, percentage, currency, url, json_schema")
+	cmd.Flags().StringVar(&outputSchemaStr, "output-schema", "", "JSON Schema string or @file path (required when answer-type is json_schema)")
 	cmd.Flags().StringVar(&templateID, "template", "", "Signal template ID (alternative to --question)")
 	cmd.Flags().StringVar(&verificationMode, "verification-mode", "", "Verification mode: strict (default) or lenient")
 	cmd.Flags().BoolVar(&forceRefresh, "force-refresh", false, "Bypass 12h cache")
@@ -107,7 +115,7 @@ func newSignalGetCmd() *cobra.Command {
 	}
 }
 
-func signalCompany(c *client.Client, ctx context.Context, domain, question, answerType string, forceRefresh bool, webhook string, noWait bool, maxWait int, templateID, verificationMode string) error {
+func signalCompany(c *client.Client, ctx context.Context, domain, question, answerType string, outputSchema map[string]any, forceRefresh bool, webhook string, noWait bool, maxWait int, templateID, verificationMode string) error {
 	if err := confirmCreditAction(c, ctx); err != nil {
 		return err
 	}
@@ -115,6 +123,7 @@ func signalCompany(c *client.Client, ctx context.Context, domain, question, answ
 		Domain:           domain,
 		Question:         question,
 		AnswerType:       answerType,
+		OutputSchema:     outputSchema,
 		ForceRefresh:     forceRefresh,
 		WebhookURL:       webhook,
 		SignalTemplateID: templateID,
@@ -135,7 +144,7 @@ func signalCompany(c *client.Client, ctx context.Context, domain, question, answ
 	})
 }
 
-func signalContact(c *client.Client, ctx context.Context, profile, question, answerType string, forceRefresh bool, webhook string, noWait bool, maxWait int, templateID, verificationMode string) error {
+func signalContact(c *client.Client, ctx context.Context, profile, question, answerType string, outputSchema map[string]any, forceRefresh bool, webhook string, noWait bool, maxWait int, templateID, verificationMode string) error {
 	if err := confirmCreditAction(c, ctx); err != nil {
 		return err
 	}
@@ -143,6 +152,7 @@ func signalContact(c *client.Client, ctx context.Context, profile, question, ans
 		ContactProfileURL: profile,
 		Question:          question,
 		AnswerType:        answerType,
+		OutputSchema:      outputSchema,
 		ForceRefresh:      forceRefresh,
 		WebhookURL:        webhook,
 		SignalTemplateID:  templateID,
@@ -328,6 +338,30 @@ func runSyncSignal(fetch func() (*client.Signal, error), fetchRaw func() error) 
 	}
 	format.PrintSignal(os.Stdout, sig)
 	return nil
+}
+
+// parseOutputSchema parses a --output-schema flag value. The value can be
+// a raw JSON string or a @filepath reference (e.g. "@schema.json").
+func parseOutputSchema(s string) (map[string]any, error) {
+	if s == "" {
+		return nil, nil
+	}
+	var raw []byte
+	if len(s) > 0 && s[0] == '@' {
+		path := s[1:]
+		var err error
+		raw, err = os.ReadFile(path)
+		if err != nil {
+			return nil, fmt.Errorf("read output schema file %q: %w", path, err)
+		}
+	} else {
+		raw = []byte(s)
+	}
+	var schema map[string]any
+	if err := json.Unmarshal(raw, &schema); err != nil {
+		return nil, fmt.Errorf("parse output schema JSON: %w", err)
+	}
+	return schema, nil
 }
 
 // printSignalCreated handles --no-wait / --webhook output.

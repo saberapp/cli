@@ -31,25 +31,32 @@ when creating signals, batches, or subscriptions.`,
 
 func newTemplateCreateCmd() *cobra.Command {
 	var (
-		name        string
-		question    string
-		description string
-		answerType  string
-		weight      string
+		name            string
+		question        string
+		description     string
+		answerType      string
+		outputSchemaStr string
+		weight          string
 	)
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Create a reusable signal template",
 		Example: `  saber template create --name "CRM Detection" --question "Which CRM are they using?" --answer-type list
-  saber template create --name "Hiring check" --question "Are they hiring engineers?" --answer-type boolean --weight important`,
+  saber template create --name "Hiring check" --question "Are they hiring engineers?" --answer-type boolean --weight important
+  saber template create --name "Pricing" --question "What are their pricing tiers?" --answer-type json_schema --output-schema @schema.json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			outputSchema, err := parseOutputSchema(outputSchemaStr)
+			if err != nil {
+				return err
+			}
 			c, ctx := mustClient()
 			req := client.CreateSignalTemplateRequest{
-				Name:        name,
-				Question:    question,
-				Description: description,
-				AnswerType:  answerType,
-				Weight:      weight,
+				Name:         name,
+				Question:     question,
+				Description:  description,
+				AnswerType:   answerType,
+				OutputSchema: outputSchema,
+				Weight:       weight,
 			}
 			if jsonOutput {
 				_, err := c.CreateSignalTemplate(ctx, req, os.Stdout)
@@ -69,6 +76,7 @@ func newTemplateCreateCmd() *cobra.Command {
 	cmd.Flags().StringVarP(&question, "question", "q", "", "Research question (required)")
 	cmd.Flags().StringVar(&description, "description", "", "Optional description")
 	cmd.Flags().StringVarP(&answerType, "answer-type", "a", "", "Answer type: open_text, boolean, number, list, percentage, currency, url, json_schema")
+	cmd.Flags().StringVar(&outputSchemaStr, "output-schema", "", "JSON Schema string or @file path (required when answer-type is json_schema)")
 	cmd.Flags().StringVar(&weight, "weight", "", "Signal importance: important, nice_to_have, not_important")
 	_ = cmd.MarkFlagRequired("name")
 	_ = cmd.MarkFlagRequired("question")
@@ -136,11 +144,12 @@ func newTemplateGetCmd() *cobra.Command {
 
 func newTemplateUpdateCmd() *cobra.Command {
 	var (
-		name        string
-		question    string
-		description string
-		answerType  string
-		weight      string
+		name            string
+		question        string
+		description     string
+		answerType      string
+		outputSchemaStr string
+		weight          string
 	)
 	cmd := &cobra.Command{
 		Use:   "update <templateId>",
@@ -152,8 +161,12 @@ the same but the version number is incremented.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if !cmd.Flags().Changed("name") && !cmd.Flags().Changed("question") &&
 				!cmd.Flags().Changed("description") && !cmd.Flags().Changed("answer-type") &&
-				!cmd.Flags().Changed("weight") {
-				return fmt.Errorf("at least one of --name, --question, --description, --answer-type, --weight is required")
+				!cmd.Flags().Changed("output-schema") && !cmd.Flags().Changed("weight") {
+				return fmt.Errorf("at least one of --name, --question, --description, --answer-type, --output-schema, --weight is required")
+			}
+			outputSchema, err := parseOutputSchema(outputSchemaStr)
+			if err != nil {
+				return err
 			}
 			c, ctx := mustClient()
 			req := client.UpdateSignalTemplateRequest{}
@@ -168,6 +181,9 @@ the same but the version number is incremented.`,
 			}
 			if cmd.Flags().Changed("answer-type") {
 				req.AnswerType = answerType
+			}
+			if cmd.Flags().Changed("output-schema") {
+				req.OutputSchema = outputSchema
 			}
 			if cmd.Flags().Changed("weight") {
 				req.Weight = weight
@@ -190,6 +206,7 @@ the same but the version number is incremented.`,
 	cmd.Flags().StringVarP(&question, "question", "q", "", "Research question")
 	cmd.Flags().StringVar(&description, "description", "", "Description")
 	cmd.Flags().StringVarP(&answerType, "answer-type", "a", "", "Answer type")
+	cmd.Flags().StringVar(&outputSchemaStr, "output-schema", "", "JSON Schema string or @file path (required when answer-type is json_schema)")
 	cmd.Flags().StringVar(&weight, "weight", "", "Signal importance: important, nice_to_have, not_important")
 	return cmd
 }

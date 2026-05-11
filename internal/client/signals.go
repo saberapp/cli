@@ -46,24 +46,26 @@ type CompanySignal = Signal
 
 // CreateCompanySignalRequest is the payload for POST /v1/companies/signals.
 type CreateCompanySignalRequest struct {
-	Domain           string `json:"domain"`
-	Question         string `json:"question,omitempty"`
-	AnswerType       string `json:"answerType,omitempty"`
-	ForceRefresh     bool   `json:"forceRefresh,omitempty"`
-	WebhookURL       string `json:"webhookUrl,omitempty"`
-	SignalTemplateID string `json:"signalTemplateId,omitempty"`
-	VerificationMode string `json:"verificationMode,omitempty"`
+	Domain           string         `json:"domain"`
+	Question         string         `json:"question,omitempty"`
+	AnswerType       string         `json:"answerType,omitempty"`
+	OutputSchema     map[string]any `json:"outputSchema,omitempty"`
+	ForceRefresh     bool           `json:"forceRefresh,omitempty"`
+	WebhookURL       string         `json:"webhookUrl,omitempty"`
+	SignalTemplateID string         `json:"signalTemplateId,omitempty"`
+	VerificationMode string         `json:"verificationMode,omitempty"`
 }
 
 // CreateContactSignalRequest is the payload for POST /v1/contacts/signals.
 type CreateContactSignalRequest struct {
-	ContactProfileURL string `json:"contactProfileUrl"`
-	Question          string `json:"question,omitempty"`
-	AnswerType        string `json:"answerType,omitempty"`
-	ForceRefresh      bool   `json:"forceRefresh,omitempty"`
-	WebhookURL        string `json:"webhookUrl,omitempty"`
-	SignalTemplateID  string `json:"signalTemplateId,omitempty"`
-	VerificationMode  string `json:"verificationMode,omitempty"`
+	ContactProfileURL string         `json:"contactProfileUrl"`
+	Question          string         `json:"question,omitempty"`
+	AnswerType        string         `json:"answerType,omitempty"`
+	OutputSchema      map[string]any `json:"outputSchema,omitempty"`
+	ForceRefresh      bool           `json:"forceRefresh,omitempty"`
+	WebhookURL        string         `json:"webhookUrl,omitempty"`
+	SignalTemplateID  string         `json:"signalTemplateId,omitempty"`
+	VerificationMode  string         `json:"verificationMode,omitempty"`
 }
 
 // CreateCompanySignal creates an async company signal.
