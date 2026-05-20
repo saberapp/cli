@@ -26,19 +26,12 @@ func newContactFindEmailCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "find-email",
 		Short: "Find a verified email for a contact at a company domain",
-		Long: `Find a verified email address for a contact, given their full name and the
-domain of the company they work for.
+		Long: `Find a verified email address for a contact, given their full name and
+the domain of the company they work for.
 
-The endpoint runs a learning pattern store (warm path) plus a bounded
-parallel sweep of common templates (cold path) and verifies candidates
-against a third-party email verifier. Repeat lookups for the same domain
-typically finish in under 200ms; cold starts run a couple of seconds.
-
-The result is one of:
-  - A found email plus verification metadata (state, score, accept_all)
-  - Not found: prints "no email found" and exits 0 (--json: emits null)
-
-Names with European tussenvoegsels (van, van der, etc.) are handled.
+Returns an email plus verification metadata (state, score, accept_all),
+or a "no email found" message on a clean miss. Names with European
+tussenvoegsels (van, van der, etc.) are handled.
 
 Examples:
   saber contact find-email --full-name "Joey van Ommen" --domain saber.app

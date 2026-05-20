@@ -7,9 +7,9 @@ import (
 
 // FindEmailRequest is the payload for POST /v1/contacts/find-email.
 //
-// Snake-case JSON tags match the Findymail-compatible API surface defined
-// in go-platform's OpenAPI spec (distinct from the camelCase used by the
-// rest of the v1 contacts endpoints).
+// Snake-case JSON tags match the API surface defined in go-platform's
+// OpenAPI spec (distinct from the camelCase used by the rest of the
+// v1 contacts endpoints).
 type FindEmailRequest struct {
 	FullName string `json:"full_name"`
 	Domain   string `json:"domain"`

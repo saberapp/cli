@@ -106,7 +106,7 @@ func PrintContactSearchResults(w io.Writer, contacts []client.ContactSearchResul
 // can pipe the output without scraping JSON.
 func PrintFindEmailResult(w io.Writer, fullName, domain string, resp *client.FindEmailResponse) {
 	if resp == nil || resp.Email == nil {
-		fmt.Fprintf(w, "no email found for %q at %s\n", fullName, domain)
+		fmt.Fprintf(w, "no email found for '%s' at %s\n", fullName, domain)
 		return
 	}
 	rows := [][2]string{
@@ -116,7 +116,7 @@ func PrintFindEmailResult(w io.Writer, fullName, domain string, resp *client.Fin
 		rows = append(rows,
 			[2]string{"State:", v.State},
 			[2]string{"Score:", fmt.Sprintf("%d", v.Score)},
-			[2]string{"Accept-all:", fmt.Sprintf("%t", v.AcceptAll)},
+			[2]string{"Accept-All:", fmt.Sprintf("%t", v.AcceptAll)},
 		)
 	}
 	KV(w, rows)
