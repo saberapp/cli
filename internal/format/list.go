@@ -100,6 +100,35 @@ func PrintContactSearchResults(w io.Writer, contacts []client.ContactSearchResul
 	fmt.Fprintf(w, "\n%d contacts found\n", count)
 }
 
+// PrintFindEmailResult renders the outcome of `saber contact find-email`.
+// On a found result it prints the email + verification metadata as a
+// key/value block; on not-found it prints a one-line message so users
+// can pipe the output without scraping JSON.
+func PrintFindEmailResult(w io.Writer, fullName, domain string, resp *client.FindEmailResponse) {
+	if resp == nil || resp.Email == nil {
+		fmt.Fprintf(w, "no email found for %q at %s\n", fullName, domain)
+		return
+	}
+	rows := [][2]string{
+		{"Email:", *resp.Email},
+	}
+	if v := resp.Verification; v != nil {
+		rows = append(rows,
+			[2]string{"State:", v.State},
+			[2]string{"Score:", fmt.Sprintf("%d", v.Score)},
+			[2]string{"Accept-all:", fmt.Sprintf("%t", v.AcceptAll)},
+		)
+	}
+	KV(w, rows)
+	// Catch-all callout: the email is a best-guess under catch-all rather
+	// than a verified mailbox. Surfacing this in plain text matters since
+	// downstream users may otherwise treat all `deliverable` results the
+	// same.
+	if v := resp.Verification; v != nil && v.AcceptAll {
+		fmt.Fprintln(w, "\nNote: domain is catch-all — the returned email is the modal real-world pattern, not a verified mailbox.")
+	}
+}
+
 // PrintContacts renders a table of contacts in a list.
 func PrintContacts(w io.Writer, contacts []client.ContactListItem, total int) {
 	tw := NewTabWriter(w)

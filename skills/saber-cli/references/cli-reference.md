@@ -295,6 +295,24 @@ saber contact search [flags]
 | `--first-name` | First name filter | No |
 | `--last-name` | Last name filter | No |
 
+### Find a verified email for a contact
+
+```bash
+saber contact find-email --full-name "<name>" --domain <domain> [--json]
+```
+
+| Flag | Description | Required |
+|---|---|---|
+| `--full-name` | Full name of the contact (2-4 tokens; supports tussenvoegsels like `van`, `van der`) | Yes |
+| `--domain` | Company mail domain (e.g. `acme.com`; URL-form and email-form inputs are rejected) | Yes |
+
+Returns a verified email plus state / score / accept_all metadata. On a
+not-found result the command exits 0 and prints a one-line message; with
+`--json` it emits `{"email": null, "verification": null}`. Repeat lookups
+at the same domain finish in under 200ms (warm path); cold starts run a
+couple of seconds. Catch-all domains return the modal real-world pattern
+with `accept_all: true` — treat as lower confidence.
+
 ### Manage contact lists
 
 ```bash
