@@ -33,10 +33,10 @@ func TestPrintFindEmailResult(t *testing.T) {
 			notSubstr: []string{"Email:", "State:", "Score:", "Accept-All:"},
 		},
 		{
-			name:     "nil response prints one-liner",
-			fullName: "Jane Doe",
-			domain:   "ghost.example",
-			resp:     nil,
+			name:       "nil response prints one-liner",
+			fullName:   "Jane Doe",
+			domain:     "ghost.example",
+			resp:       nil,
 			wantSubstr: []string{"no email found", "Jane Doe", "ghost.example"},
 		},
 		{
