@@ -158,6 +158,19 @@ Both `--company-linkedin` and `--title` are repeatable. `--company-linkedin` is 
 saber contact search --company-linkedin https://linkedin.com/company/acme --title "VP Sales"
 ```
 
+**Look up a single contact's email** (one-shot, given just full name + company domain):
+
+```bash
+saber contact find-email --full-name "Joey van Ommen" --domain saber.app
+```
+
+Reach for `find-email` when you already have a target name in mind — e.g. enriching
+a list with verified emails before drafting outreach, or resolving a contact you
+saw on LinkedIn. It's distinct from `contact search` (which previews many contacts
+by filter) and from `list contact create` (which snapshots a Sales Navigator list).
+Catch-all domains return the modal real-world pattern with `accept_all: true` —
+treat as lower confidence.
+
 ## Market Signals
 
 Market signals monitor external data sources continuously and deliver matching
