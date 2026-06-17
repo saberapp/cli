@@ -158,6 +158,14 @@ Both `--company-linkedin` and `--title` are repeatable. `--company-linkedin` is 
 saber contact search --company-linkedin https://linkedin.com/company/acme --title "VP Sales"
 ```
 
+Contact search also supports `--department` and `--seniority` filters (both repeatable):
+
+```bash
+saber contact search --company-linkedin https://linkedin.com/company/acme \
+  --department Sales --department Marketing \
+  --seniority "Director" --seniority "VP"
+```
+
 **Look up a single contact's email** (one-shot, given just full name + company domain):
 
 ```bash

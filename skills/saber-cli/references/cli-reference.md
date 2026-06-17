@@ -292,6 +292,8 @@ saber contact search [flags]
 | `--title` | Job title filter | Yes |
 | `--keyword` | Keyword filter | No |
 | `--country` | Country code filter | Yes |
+| `--department` | Department filter | Yes |
+| `--seniority` | Seniority level filter | Yes |
 | `--first-name` | First name filter | No |
 | `--last-name` | Last name filter | No |
 
