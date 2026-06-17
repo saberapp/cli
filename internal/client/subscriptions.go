@@ -34,10 +34,11 @@ type SubscriptionsResponse struct {
 // CreateSubscriptionRequest is the payload for POST /v1/companies/signals/subscriptions.
 type CreateSubscriptionRequest struct {
 	// Reference an existing template, or provide name+question to create inline.
-	SignalTemplateID string `json:"signalTemplateId,omitempty"`
-	Name             string `json:"name,omitempty"`
-	Question         string `json:"question,omitempty"`
-	AnswerType       string `json:"answerType,omitempty"`
+	SignalTemplateID string         `json:"signalTemplateId,omitempty"`
+	Name             string         `json:"name,omitempty"`
+	Question         string         `json:"question,omitempty"`
+	AnswerType       string         `json:"answerType,omitempty"`
+	OutputSchema     map[string]any `json:"outputSchema,omitempty"`
 
 	// Exactly one of Frequency or CronExpression must be set.
 	Frequency      string `json:"frequency,omitempty"`
