@@ -374,7 +374,9 @@ type ContactSearchRequest struct {
 	Keywords            string   `json:"keywords,omitempty"`
 	Countries           []string `json:"countries,omitempty"`
 	Departments         []string `json:"departments,omitempty"`
-	Seniorities         []string `json:"seniorities,omitempty"`
+	SeniorityLevels     []string `json:"seniorityLevels,omitempty"`
+	Limit               int      `json:"limit,omitempty"`
+	Offset              int      `json:"offset,omitempty"`
 }
 
 // ContactSearchResult is a single contact returned from search.
@@ -392,9 +394,16 @@ type ContactSearchResult struct {
 }
 
 // ContactSearchResponse wraps contact search results.
+//
+// The API returns a paginated envelope: `items` is the current page,
+// `total` is the full match count from LinkedIn, and `limit`/`offset`/
+// `hasMore` support cursor-free pagination.
 type ContactSearchResponse struct {
-	Contacts          []ContactSearchResult `json:"contacts"`
-	Count             int                   `json:"count"`
+	Items             []ContactSearchResult `json:"items"`
+	Total             int                   `json:"total"`
+	Limit             int                   `json:"limit"`
+	Offset            int                   `json:"offset"`
+	HasMore           bool                  `json:"hasMore"`
 	SalesNavConnected bool                  `json:"salesNavConnected"`
 }
 

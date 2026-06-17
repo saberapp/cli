@@ -291,11 +291,19 @@ saber contact search [flags]
 | `--company-linkedin` | Company LinkedIn URL | Yes |
 | `--title` | Job title filter | Yes |
 | `--keyword` | Keyword filter | No |
-| `--country` | Country code filter | Yes |
-| `--department` | Department filter | Yes |
-| `--seniority` | Seniority level filter | Yes |
+| `--country` | Country code filter (ISO 3166-1 alpha-2, e.g. `US`, `GB`) | Yes |
+| `--department` | Department filter (LinkedIn Sales Navigator taxonomy, e.g. `Sales`, `Engineering`) | Yes |
+| `--seniority` | Seniority level filter (LSN taxonomy, e.g. `CXO`, `Director`) | Yes |
 | `--first-name` | First name filter | No |
 | `--last-name` | Last name filter | No |
+| `--limit` | Max results per page (1-100, API default 25) | No |
+| `--offset` | Zero-based offset for pagination | No |
+
+At least one search parameter is required. `--department` and `--seniority`
+values must match the LinkedIn Sales Navigator taxonomy exactly (the API
+rejects unknown values with a validation error). The output footer reports
+`Showing N of TOTAL contacts` and notes when more pages are available —
+page through them with `--offset`.
 
 ### Find a verified email for a contact
 

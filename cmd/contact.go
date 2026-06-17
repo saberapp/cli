@@ -73,6 +73,8 @@ func newContactSearchCmd() *cobra.Command {
 		seniorities     []string
 		firstName       string
 		lastName        string
+		limit           int
+		offset          int
 	)
 	cmd := &cobra.Command{
 		Use:   "search",
@@ -87,7 +89,9 @@ func newContactSearchCmd() *cobra.Command {
 				Keywords:            keyword,
 				Countries:           countries,
 				Departments:         departments,
-				Seniorities:         seniorities,
+				SeniorityLevels:     seniorities,
+				Limit:               limit,
+				Offset:              offset,
 			}
 			if jsonOutput {
 				_, err := c.SearchContacts(ctx, req, os.Stdout)
@@ -98,7 +102,7 @@ func newContactSearchCmd() *cobra.Command {
 				return err
 			}
 			if !quiet {
-				format.PrintContactSearchResults(os.Stdout, resp.Contacts, resp.Count)
+				format.PrintContactSearchResults(os.Stdout, resp.Items, resp.Total, resp.HasMore)
 			}
 			return nil
 		},
@@ -111,5 +115,7 @@ func newContactSearchCmd() *cobra.Command {
 	cmd.Flags().StringArrayVar(&seniorities, "seniority", nil, "Seniority level filter (repeatable)")
 	cmd.Flags().StringVar(&firstName, "first-name", "", "First name filter")
 	cmd.Flags().StringVar(&lastName, "last-name", "", "Last name filter")
+	cmd.Flags().IntVar(&limit, "limit", 0, "Max results per page (1-100, API default 25)")
+	cmd.Flags().IntVar(&offset, "offset", 0, "Zero-based offset for pagination")
 	return cmd
 }
