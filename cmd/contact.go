@@ -69,6 +69,8 @@ func newContactSearchCmd() *cobra.Command {
 		titles          []string
 		keyword         string
 		countries       []string
+		departments     []string
+		seniorities     []string
 		firstName       string
 		lastName        string
 	)
@@ -84,6 +86,8 @@ func newContactSearchCmd() *cobra.Command {
 				JobTitles:           titles,
 				Keywords:            keyword,
 				Countries:           countries,
+				Departments:         departments,
+				Seniorities:         seniorities,
 			}
 			if jsonOutput {
 				_, err := c.SearchContacts(ctx, req, os.Stdout)
@@ -103,6 +107,8 @@ func newContactSearchCmd() *cobra.Command {
 	cmd.Flags().StringArrayVar(&titles, "title", nil, "Job title filter (repeatable)")
 	cmd.Flags().StringVar(&keyword, "keyword", "", "Keyword filter")
 	cmd.Flags().StringArrayVar(&countries, "country", nil, "Country code filter (repeatable)")
+	cmd.Flags().StringArrayVar(&departments, "department", nil, "Department filter (repeatable)")
+	cmd.Flags().StringArrayVar(&seniorities, "seniority", nil, "Seniority level filter (repeatable)")
 	cmd.Flags().StringVar(&firstName, "first-name", "", "First name filter")
 	cmd.Flags().StringVar(&lastName, "last-name", "", "Last name filter")
 	return cmd

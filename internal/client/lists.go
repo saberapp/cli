@@ -373,6 +373,8 @@ type ContactSearchRequest struct {
 	JobTitles           []string `json:"jobTitles,omitempty"`
 	Keywords            string   `json:"keywords,omitempty"`
 	Countries           []string `json:"countries,omitempty"`
+	Departments         []string `json:"departments,omitempty"`
+	Seniorities         []string `json:"seniorities,omitempty"`
 }
 
 // ContactSearchResult is a single contact returned from search.
