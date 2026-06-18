@@ -393,6 +393,35 @@ saber subscription create --list <listId> \
   --answer-type boolean --frequency weekly
 ```
 
+**Structured data (json_schema):**
+
+```bash
+saber subscription create --list <listId> \
+  --name "Company financials" \
+  --question "Extract annual revenue, employee count, and funding stage" \
+  --answer-type json_schema \
+  --output-schema '{
+    "type": "object",
+    "properties": {
+      "revenue": {"type": "string"},
+      "employees": {"type": "number"},
+      "funding_stage": {"type": "string"}
+    }
+  }' \
+  --frequency monthly
+```
+
+Or use a schema file:
+
+```bash
+saber subscription create --list <listId> \
+  --name "Company financials" \
+  --question "Extract annual revenue, employee count, and funding stage" \
+  --answer-type json_schema \
+  --output-schema @schema.json \
+  --frequency monthly
+```
+
 Manage subscriptions:
 
 ```bash
