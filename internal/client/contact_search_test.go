@@ -39,6 +39,11 @@ func TestSearchContactsRequestEncoding(t *testing.T) {
 	if _, ok := got["seniorityLevels"]; !ok {
 		t.Errorf("request missing 'seniorityLevels' key; got %v", got)
 	}
+	if depts, ok := got["departments"]; !ok {
+		t.Errorf("request missing 'departments' key; got %v", got)
+	} else if deptList, ok := depts.([]interface{}); !ok || len(deptList) != 1 || deptList[0] != "Sales" {
+		t.Errorf("departments = %v, want [\"Sales\"]", depts)
+	}
 	if got["limit"] != float64(50) {
 		t.Errorf("limit = %v, want 50", got["limit"])
 	}

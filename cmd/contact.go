@@ -102,7 +102,7 @@ func newContactSearchCmd() *cobra.Command {
 				return err
 			}
 			if !quiet {
-				format.PrintContactSearchResults(os.Stdout, resp.Items, resp.Total, resp.HasMore)
+				format.PrintContactSearchResults(os.Stdout, resp.Items, resp.Total, resp.HasMore, resp.SalesNavConnected)
 			}
 			return nil
 		},
