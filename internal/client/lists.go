@@ -375,8 +375,8 @@ type ContactSearchRequest struct {
 	Countries           []string `json:"countries,omitempty"`
 	Departments         []string `json:"departments,omitempty"`
 	SeniorityLevels     []string `json:"seniorityLevels,omitempty"`
-	Limit               int      `json:"limit,omitempty"`
-	Offset              int      `json:"offset,omitempty"`
+	Limit               int      `json:"limit"`
+	Offset              int      `json:"offset"`
 }
 
 // ContactSearchResult is a single contact returned from search.
