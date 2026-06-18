@@ -91,10 +91,10 @@ func TestParseOutputSchema(t *testing.T) {
 
 func TestParseOutputSchema_FileInput(t *testing.T) {
 	tests := []struct {
-		name       string
+		name        string
 		fileContent string
-		wantErr    bool
-		wantKey    string
+		wantErr     bool
+		wantKey     string
 	}{
 		{
 			name:        "valid schema from file",
