@@ -25,15 +25,16 @@ func newSubscriptionCmd() *cobra.Command {
 
 func newSubscriptionCreateCmd() *cobra.Command {
 	var (
-		listID     string
-		name       string
-		question   string
-		answerType string
-		frequency  string
-		cronExpr   string
-		timezone   string
-		templateID string
-		runOnce    bool
+		listID          string
+		name            string
+		question        string
+		answerType      string
+		outputSchemaStr string
+		frequency       string
+		cronExpr        string
+		timezone        string
+		templateID      string
+		runOnce         bool
 	)
 	cmd := &cobra.Command{
 		Use:   "create",
@@ -63,12 +64,18 @@ if you don't intend to run on a schedule).`,
 				return fmt.Errorf("--frequency and --cron are mutually exclusive")
 			}
 
+			outputSchema, err := parseOutputSchema(outputSchemaStr)
+			if err != nil {
+				return err
+			}
+
 			c, ctx := mustClient()
 			req := client.CreateSubscriptionRequest{
 				SignalTemplateID: templateID,
 				Name:             name,
 				Question:         question,
 				AnswerType:       answerType,
+				OutputSchema:     outputSchema,
 				Frequency:        frequency,
 				CronExpression:   cronExpr,
 				Timezone:         timezone,
@@ -115,6 +122,7 @@ if you don't intend to run on a schedule).`,
 	cmd.Flags().StringVar(&name, "name", "", "Subscription name (required when not using --template)")
 	cmd.Flags().StringVar(&question, "question", "", "Signal question (required when not using --template)")
 	cmd.Flags().StringVarP(&answerType, "answer-type", "a", "", "Answer type: open_text, boolean, number, list, percentage, currency, url, json_schema")
+	cmd.Flags().StringVar(&outputSchemaStr, "output-schema", "", "JSON Schema string or @file path (required when answer-type is json_schema)")
 	cmd.Flags().StringVar(&frequency, "frequency", "", "Schedule frequency: daily, weekly, or monthly")
 	cmd.Flags().StringVar(&cronExpr, "cron", "", "Custom cron expression, e.g. \"0 9 * * 1\" (mutually exclusive with --frequency)")
 	cmd.Flags().StringVar(&timezone, "timezone", "UTC", "IANA timezone for scheduling, e.g. Europe/Amsterdam")

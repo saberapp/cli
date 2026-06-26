@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -112,14 +110,4 @@ func TestLoadExtractClusters_MissingFile(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "read plan") {
 		t.Errorf("expected read error, got %v", err)
 	}
-}
-
-func writeTempJSON(t *testing.T, content string) string {
-	t.Helper()
-	dir := t.TempDir()
-	path := filepath.Join(dir, "plan.json")
-	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
-		t.Fatalf("write temp file: %v", err)
-	}
-	return path
 }

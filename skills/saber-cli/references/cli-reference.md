@@ -338,7 +338,8 @@ saber subscription create --list <listId> --name "<name>" --question "<question>
 | `--list` | required | Company list ID |
 | `--name` | required* | Subscription name |
 | `--question` | required* | Signal question |
-| `--answer-type` | `open_text` | Answer type |
+| `--answer-type` | `open_text` | Answer type (see answer types below) |
+| `--output-schema` | | JSON Schema string or `@file` path (required when answer-type is `json_schema`) |
 | `--frequency` | required** | `daily`, `weekly`, or `monthly` |
 | `--cron` | required** | Custom cron expression (mutually exclusive with `--frequency`) |
 | `--timezone` | `UTC` | IANA timezone (e.g. `Europe/Amsterdam`) |
