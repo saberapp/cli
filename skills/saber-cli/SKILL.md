@@ -158,6 +158,17 @@ Both `--company-linkedin` and `--title` are repeatable. `--company-linkedin` is 
 saber contact search --company-linkedin https://linkedin.com/company/acme --title "VP Sales"
 ```
 
+Filter by department and seniority using the LinkedIn Sales Navigator taxonomy
+(both repeatable), and page through large result sets with `--limit`/`--offset`.
+Values must match the LSN taxonomy exactly — e.g. seniority is `Vice President`,
+not `VP`; unknown values are rejected by the API with a validation error:
+
+```bash
+saber contact search --company-linkedin https://linkedin.com/company/acme \
+  --department Sales --seniority CXO --seniority "Vice President" \
+  --limit 50 --offset 0
+```
+
 **Look up a single contact's email** (one-shot, given just full name + company domain):
 
 ```bash

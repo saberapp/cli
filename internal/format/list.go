@@ -81,7 +81,15 @@ func PrintContactLists(w io.Writer, lists []client.ContactList, total int) {
 }
 
 // PrintContactSearchResults renders a table of contact search results.
-func PrintContactSearchResults(w io.Writer, contacts []client.ContactSearchResult, count int) {
+// total is the full match count from LinkedIn; hasMore indicates more
+// pages are available beyond the contacts shown here. salesNavConnected
+// indicates whether the API account has Sales Navigator connected.
+func PrintContactSearchResults(w io.Writer, contacts []client.ContactSearchResult, total int, hasMore bool, salesNavConnected bool) {
+	if !salesNavConnected {
+		fmt.Fprintln(w, "Sales Navigator is not connected — search results cannot be retrieved.")
+		fmt.Fprintln(w, "Connect your Sales Navigator account in the Saber web app to use contact search.")
+		return
+	}
 	tw := NewTabWriter(w)
 	fmt.Fprintln(tw, "NAME\tROLE\tCOMPANY\tLOCATION")
 	for _, c := range contacts {
@@ -97,7 +105,10 @@ func PrintContactSearchResults(w io.Writer, contacts []client.ContactSearchResul
 		)
 	}
 	FlushTable(tw)
-	fmt.Fprintf(w, "\n%d contacts found\n", count)
+	fmt.Fprintf(w, "\nShowing %d of %d contacts\n", len(contacts), total)
+	if hasMore {
+		fmt.Fprintln(w, "More results available — use --offset to page through them.")
+	}
 }
 
 // PrintFindEmailResult renders the outcome of `saber contact find-email`.

@@ -232,8 +232,12 @@ func printCheatSheet(w io.Writer) {
 	flag(w, "--title <title>", "Job title filter — repeatable")
 	flag(w, "--keyword <text>", "Keyword filter")
 	flag(w, "--country <code>", "Country code filter — repeatable")
+	flag(w, "--department <dept>", "Department filter — repeatable")
+	flag(w, "--seniority <level>", "Seniority level filter — repeatable")
 	flag(w, "--first-name <name>", "First name filter (search only)")
 	flag(w, "--last-name <name>", "Last name filter (search only)")
+	flag(w, "--limit <n>", "Max results per page (1-100, API default 25, search only)")
+	flag(w, "--offset <n>", "Zero-based offset for pagination (search only)")
 	fmt.Fprintln(w)
 
 	section(w, "SCORING")
