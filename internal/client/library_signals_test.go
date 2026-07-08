@@ -131,3 +131,54 @@ func TestCreateLibrarySignalAsyncPath(t *testing.T) {
 		t.Errorf("id/status = %s/%s, want sig-7/processing", sig.ID, sig.Status)
 	}
 }
+
+// TestCreateLibrarySignalTechBodySerialization pins the tech key's wire
+// contract: setting category omits technology from the JSON body entirely
+// (omitempty), and vice-versa — the server rejects requests carrying both.
+func TestCreateLibrarySignalTechBodySerialization(t *testing.T) {
+	tests := []struct {
+		name    string
+		req     CreateLibrarySignalRequest
+		wantKey string
+		wantVal string
+		omitKey string
+	}{
+		{
+			name:    "category set omits technology",
+			req:     CreateLibrarySignalRequest{Domain: "acme.com", Category: "crm"},
+			wantKey: "category",
+			wantVal: "crm",
+			omitKey: "technology",
+		},
+		{
+			name:    "technology set omits category",
+			req:     CreateLibrarySignalRequest{Domain: "acme.com", Technology: "salesforce"},
+			wantKey: "technology",
+			wantVal: "salesforce",
+			omitKey: "category",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var gotBody map[string]any
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				body, _ := io.ReadAll(r.Body)
+				_ = json.Unmarshal(body, &gotBody)
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(`{"id":"sig-9","status":"processing"}`))
+			}))
+			defer srv.Close()
+
+			c := New(srv.URL, "test-key", "test", false, io.Discard)
+			if _, err := c.CreateLibrarySignal(context.Background(), "tech", tt.req); err != nil {
+				t.Fatalf("CreateLibrarySignal: %v", err)
+			}
+			if gotBody[tt.wantKey] != tt.wantVal {
+				t.Errorf("body %s = %v, want %q", tt.wantKey, gotBody[tt.wantKey], tt.wantVal)
+			}
+			if _, ok := gotBody[tt.omitKey]; ok {
+				t.Errorf("body contains %q; want it omitted (omitempty)", tt.omitKey)
+			}
+		})
+	}
+}
