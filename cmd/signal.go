@@ -83,6 +83,9 @@ Examples:
 	cmd.AddCommand(newSignalGetCmd())
 	cmd.AddCommand(newSignalListCmd())
 	cmd.AddCommand(newSignalBatchCmd())
+	for _, k := range client.LibrarySignalKeys {
+		cmd.AddCommand(newLibrarySignalCmd(k))
+	}
 
 	return cmd
 }
@@ -372,6 +375,90 @@ func printSignalCreated(sig *client.Signal) error {
 	}
 	if !quiet {
 		format.PrintSignalCreated(os.Stdout, sig)
+	}
+	return nil
+}
+
+// newLibrarySignalCmd builds a `saber signal <key>` subcommand for one prebuilt
+// Signal Library key. Sync by default (mirrors the custom-signal flow); --no-wait
+// or --webhook switches to the async endpoint. The "tech" key additionally takes
+// exactly one of --category or --technology.
+func newLibrarySignalCmd(key string) *cobra.Command {
+	var (
+		domain       string
+		forceRefresh bool
+		webhook      string
+		noWait       bool
+		maxWait      int
+		category     string
+		technology   string
+	)
+	isTech := key == "tech"
+
+	example := fmt.Sprintf("  saber signal %s --domain acme.com\n  saber signal %s --domain acme.com --no-wait", key, key)
+	if isTech {
+		example = "  saber signal tech --domain acme.com --category crm\n  saber signal tech --domain acme.com --technology \"salesforce\""
+	}
+
+	cmd := &cobra.Command{
+		Use:     key,
+		Short:   fmt.Sprintf("Run the prebuilt %s Signal Library signal against a company domain", key),
+		Example: example,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if isTech {
+				if err := validateTechFlags(category, technology); err != nil {
+					return err
+				}
+			}
+			c, ctx := mustClient()
+			if err := confirmCreditAction(c, ctx); err != nil {
+				return err
+			}
+			req := client.CreateLibrarySignalRequest{
+				Domain:       domain,
+				WebhookURL:   webhook,
+				ForceRefresh: forceRefresh,
+				Category:     category,
+				Technology:   technology,
+			}
+			if noWait || webhook != "" {
+				sig, err := c.CreateLibrarySignal(ctx, key, req)
+				if err != nil {
+					return fmt.Errorf("create signal: %w", err)
+				}
+				return printSignalCreated(sig)
+			}
+			return runSyncSignal(func() (*client.Signal, error) {
+				return c.CreateLibrarySignalSync(ctx, key, req, maxWait, nil)
+			}, func() error {
+				_, err := c.CreateLibrarySignalSync(ctx, key, req, maxWait, os.Stdout)
+				return err
+			})
+		},
+	}
+
+	cmd.Flags().StringVarP(&domain, "domain", "d", "", "Company domain (e.g. acme.com)")
+	_ = cmd.MarkFlagRequired("domain")
+	cmd.Flags().BoolVar(&forceRefresh, "force-refresh", false, "Bypass 12h cache")
+	cmd.Flags().StringVar(&webhook, "webhook", "", "Webhook URL (async, skips waiting)")
+	cmd.Flags().BoolVar(&noWait, "no-wait", false, "Async: print signal ID and exit immediately")
+	cmd.Flags().IntVar(&maxWait, "max-wait", 120, "Max seconds to wait for result (sync mode)")
+	if isTech {
+		cmd.Flags().StringVar(&category, "category", "", "Technology category: erp or crm (mutually exclusive with --technology)")
+		cmd.Flags().StringVar(&technology, "technology", "", "Free-text technology name, e.g. \"salesforce\" (mutually exclusive with --category)")
+	}
+	return cmd
+}
+
+// validateTechFlags enforces the tech key's exactly-one rule for
+// --category/--technology. Unknown --technology values are NOT validated
+// here — the server returns a 422 with did-you-mean suggestions.
+func validateTechFlags(category, technology string) error {
+	if category == "" && technology == "" {
+		return fmt.Errorf("one of --category or --technology is required")
+	}
+	if category != "" && technology != "" {
+		return fmt.Errorf("--category and --technology are mutually exclusive")
 	}
 	return nil
 }
