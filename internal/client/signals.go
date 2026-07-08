@@ -137,6 +137,15 @@ type CreateLibrarySignalRequest struct {
 	Technology   string `json:"technology,omitempty"` // tech only
 }
 
+// CreateLibrarySignal creates an async Signal Library signal.
+func (c *Client) CreateLibrarySignal(ctx context.Context, key string, req CreateLibrarySignalRequest) (*Signal, error) {
+	var sig Signal
+	if err := c.Post(ctx, fmt.Sprintf("/v1/signals/%s", key), req, &sig, nil); err != nil {
+		return nil, err
+	}
+	return &sig, nil
+}
+
 // CreateLibrarySignalSync runs a Signal Library signal and waits synchronously
 // for the result. timeoutSec is passed as X-Sbr-Timeout-Sec (1–900). A 202
 // response means the server timed out before the signal completed; the

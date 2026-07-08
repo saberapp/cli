@@ -95,3 +95,39 @@ func TestCreateLibrarySignalSyncResponseDecoding(t *testing.T) {
 		t.Errorf("sources not decoded: %+v", sig.Sources)
 	}
 }
+
+// TestCreateLibrarySignalAsyncPath verifies the async call hits
+// POST /v1/signals/<key> (no /sync segment, no timeout header).
+func TestCreateLibrarySignalAsyncPath(t *testing.T) {
+	var (
+		gotMethod  string
+		gotPath    string
+		gotTimeout string
+	)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotMethod = r.Method
+		gotPath = r.URL.Path
+		gotTimeout = r.Header.Get("X-Sbr-Timeout-Sec")
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":"sig-7","status":"processing"}`))
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-key", "test", false, io.Discard)
+	sig, err := c.CreateLibrarySignal(context.Background(), "mna", CreateLibrarySignalRequest{Domain: "acme.com", WebhookURL: "https://example.com/hook"})
+	if err != nil {
+		t.Fatalf("CreateLibrarySignal: %v", err)
+	}
+	if gotMethod != http.MethodPost {
+		t.Errorf("method = %s, want POST", gotMethod)
+	}
+	if gotPath != "/v1/signals/mna" {
+		t.Errorf("path = %s, want /v1/signals/mna", gotPath)
+	}
+	if gotTimeout != "" {
+		t.Errorf("X-Sbr-Timeout-Sec = %q, want unset on async path", gotTimeout)
+	}
+	if sig.ID != "sig-7" || sig.Status != SignalStatusProcessing {
+		t.Errorf("id/status = %s/%s, want sig-7/processing", sig.ID, sig.Status)
+	}
+}
