@@ -22,7 +22,7 @@ func confirmCreditAction(c *client.Client, ctx context.Context) error {
 		return fmt.Errorf("check credits: %w", err)
 	}
 	msg := fmt.Sprintf("This will consume credits (balance: %s). Proceed? [y/N] ",
-		formatInt(bal.RemainingCredits))
+		formatCredits(bal.RemainingCredits))
 	if !term.IsTerminal(int(os.Stdin.Fd())) {
 		return fmt.Errorf("%suse --yes to confirm non-interactively", msg)
 	}

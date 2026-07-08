@@ -514,7 +514,7 @@ async and idempotent -- duplicate triggers attach to the running workflow.
 ## Other Commands
 
 ```bash
-saber credits                                         # Show remaining credit balance
+saber credits                                         # Show remaining credit balance, including fractional credits
 saber connectors                                      # List configured connectors and status
 saber version                                         # Print version, commit, build date
 saber update                                          # Check for newer version and upgrade

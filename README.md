@@ -119,7 +119,7 @@ saber list contact contacts <listId>    # paginated list of contacts
 
 ```sh
 saber credits
-# Remaining credits: 4,200
+# Remaining credits: 4,200.5
 ```
 
 ### `saber connectors`
