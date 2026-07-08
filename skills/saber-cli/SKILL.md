@@ -243,7 +243,7 @@ The alias `saber ms` works as shorthand for `saber market-signal`.
 ### Before running any signals
 
 Before any `saber signal` or `saber subscription` command that consumes credits:
-1. Run `saber credits` and show the current balance
+1. Run `saber credits` and show the current balance. Balances can be whole or fractional credits.
 2. State how many signals will run (companies x questions, or contacts x questions)
 3. Ask the user to confirm before proceeding
 
@@ -687,7 +687,7 @@ saber subscription create --list <listId> --template <templateId> --frequency we
 ### Check account status
 
 ```bash
-saber credits                    # remaining credit balance
+saber credits                    # remaining credit balance, including fractional credits
 saber connectors                 # configured integrations and status
 saber auth status                # current auth state
 saber update                     # check for newer version and upgrade

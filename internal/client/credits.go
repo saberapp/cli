@@ -7,7 +7,7 @@ import (
 
 // CreditsBalance is returned by GET /v1/credits.
 type CreditsBalance struct {
-	RemainingCredits int `json:"remainingCredits"`
+	RemainingCredits float64 `json:"remainingCredits"`
 }
 
 // GetCredits returns the current credit balance.

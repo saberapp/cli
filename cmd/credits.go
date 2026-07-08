@@ -3,6 +3,8 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -25,18 +27,40 @@ func newCreditsCmd() *cobra.Command {
 			}
 
 			if !quiet {
-				fmt.Fprintf(os.Stdout, "Remaining credits: %s\n", formatInt(resp.RemainingCredits))
+				fmt.Fprintf(os.Stdout, "Remaining credits: %s\n", formatCredits(resp.RemainingCredits))
 			}
 			return nil
 		},
 	}
 }
 
+// formatCredits formats a fractional credit balance with thousands separators.
+func formatCredits(n float64) string {
+	whole, frac, hasFrac := strings.Cut(strconv.FormatFloat(n, 'f', 4, 64), ".")
+	formatted := formatWholeNumber(whole)
+	if !hasFrac {
+		return formatted
+	}
+	frac = strings.TrimRight(frac, "0")
+	if frac == "" {
+		return formatted
+	}
+	return formatted + "." + frac
+}
+
 // formatInt formats an integer with thousands separators.
 func formatInt(n int) string {
-	s := fmt.Sprintf("%d", n)
-	if n < 1000 {
-		return s
+	return formatWholeNumber(fmt.Sprintf("%d", n))
+}
+
+func formatWholeNumber(s string) string {
+	sign := ""
+	if strings.HasPrefix(s, "-") {
+		sign = "-"
+		s = strings.TrimPrefix(s, "-")
+	}
+	if len(s) < 4 {
+		return sign + s
 	}
 	out := make([]byte, 0, len(s)+len(s)/3)
 	mod := len(s) % 3
@@ -48,5 +72,5 @@ func formatInt(n int) string {
 		out = append(out, ',')
 		out = append(out, s[i:i+3]...)
 	}
-	return string(out)
+	return sign + string(out)
 }
