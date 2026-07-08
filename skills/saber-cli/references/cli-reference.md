@@ -66,6 +66,33 @@ saber signal --profile <linkedin-url> --template <templateId> [flags]
 
 *Required unless `--template` is provided.
 
+### Run a Signal Library signal
+
+Prebuilt signals invoked by key — no question needed. Keys: `funding`, `mna`,
+`tech`, `open-jobs`, `firmographics`.
+
+```bash
+saber signal funding --domain <domain> [flags]
+saber signal mna --domain <domain> [flags]
+saber signal tech --domain <domain> --category <erp|crm> [flags]
+saber signal tech --domain <domain> --technology "<name>" [flags]
+saber signal open-jobs --domain <domain> [flags]
+saber signal firmographics --domain <domain> [flags]
+```
+
+| Flag | Short | Default | Description |
+|---|---|---|---|
+| `--domain` | `-d` | required | Company domain (e.g. `acme.com`) |
+| `--force-refresh` | | `false` | Bypass the 12-hour answer cache |
+| `--no-wait` | | `false` | Return signal ID immediately without polling |
+| `--webhook` | | | POST result to this URL when complete (async) |
+| `--max-wait` | | `120` | Max seconds to wait before timing out |
+| `--category` | | | `tech` only: technology category, `erp` or `crm` |
+| `--technology` | | | `tech` only: free-text technology name |
+
+`tech` requires exactly one of `--category` or `--technology`. An unrecognized
+`--technology` value returns a 422 with did-you-mean suggestions from the API.
+
 ### Retrieve a signal result
 
 ```bash
