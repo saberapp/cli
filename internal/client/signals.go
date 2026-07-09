@@ -118,6 +118,53 @@ func (c *Client) CreateCompanySignalSync(ctx context.Context, req CreateCompanyS
 	return &sig, nil
 }
 
+// --- Signal Library ---
+
+// LibrarySignalKeys are the prebuilt Signal Library keys exposed as `saber
+// signal <key>` subcommands. Hardcoded for v1 — the GET /v1/signals catalogue
+// endpoint (SEL-3372) is deferred to Post-v1.
+var LibrarySignalKeys = []string{"funding", "mna", "tech", "open-jobs", "firmographics"}
+
+// CreateLibrarySignalRequest is the payload for POST /v1/signals/<key> and
+// POST /v1/signals/sync/<key>. Category and Technology apply to the "tech"
+// key only and are mutually exclusive; the command layer enforces
+// exactly-one, the client does not validate.
+type CreateLibrarySignalRequest struct {
+	Domain       string `json:"domain"`
+	WebhookURL   string `json:"webhookUrl,omitempty"`
+	ForceRefresh bool   `json:"forceRefresh,omitempty"`
+	Category     string `json:"category,omitempty"`   // tech only
+	Technology   string `json:"technology,omitempty"` // tech only
+}
+
+// CreateLibrarySignal creates an async Signal Library signal.
+func (c *Client) CreateLibrarySignal(ctx context.Context, key string, req CreateLibrarySignalRequest) (*Signal, error) {
+	var sig Signal
+	if err := c.Post(ctx, fmt.Sprintf("/v1/signals/%s", key), req, &sig, nil); err != nil {
+		return nil, err
+	}
+	return &sig, nil
+}
+
+// CreateLibrarySignalSync runs a Signal Library signal and waits synchronously
+// for the result. timeoutSec is passed as X-Sbr-Timeout-Sec (1–900). A 202
+// response means the server timed out before the signal completed; the
+// returned signal will have Status == "processing".
+func (c *Client) CreateLibrarySignalSync(ctx context.Context, key string, req CreateLibrarySignalRequest, timeoutSec int, rawDst io.Writer) (*Signal, error) {
+	headers := map[string]string{
+		"X-Sbr-Timeout-Sec": strconv.Itoa(timeoutSec),
+	}
+	path := fmt.Sprintf("/v1/signals/sync/%s", key)
+	if rawDst != nil {
+		return nil, c.PostWithHeaders(ctx, path, headers, req, nil, rawDst)
+	}
+	var sig Signal
+	if err := c.PostWithHeaders(ctx, path, headers, req, &sig, nil); err != nil {
+		return nil, err
+	}
+	return &sig, nil
+}
+
 // GetCompanySignal retrieves a company signal by ID.
 func (c *Client) GetCompanySignal(ctx context.Context, id string, rawDst io.Writer) (*CompanySignal, error) {
 	path := fmt.Sprintf("/v1/companies/signals/%s", id)

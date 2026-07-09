@@ -304,6 +304,22 @@ Re-running the same plan returns 409 — drop already-attached executionIds
 before retrying. Only score-compatible answer types (boolean, number,
 percentage, currency, list) are clustered; open-text answers are skipped.
 
+### Signal Library (prefer when one matches)
+
+Five prebuilt signals run by key with no question design needed: `funding`,
+`mna`, `tech`, `open-jobs`, `firmographics`. Prefer a library signal over a
+custom `--question` whenever one covers the need — same credit confirmation,
+same output, same `--no-wait`/`--webhook` async options.
+
+```bash
+saber signal funding --domain acme.com
+saber signal tech --domain acme.com --category crm        # or --technology "salesforce"
+saber signal mna --domain acme.com --no-wait
+```
+
+`tech` takes exactly one of `--category erp|crm` or `--technology "<name>"`;
+an unknown technology returns a 422 with did-you-mean suggestions.
+
 ### Company signals -- spot check
 
 Run a question against a single domain:

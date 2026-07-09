@@ -3,6 +3,22 @@
 Example signal questions organized by industry and buyer persona. Use these as
 starting points when helping users define their buying signals during discovery.
 
+## Signal Library first
+
+Before writing a custom question, check whether a prebuilt Signal Library key
+covers it — library signals are one command away and need no question design:
+
+| Need | Command |
+|---|---|
+| Funding history / recent rounds | `saber signal funding --domain <d>` |
+| M&A activity (acquirer or target) | `saber signal mna --domain <d>` |
+| Tech stack by category or product | `saber signal tech --domain <d> --category crm` or `--technology "salesforce"` |
+| Open roles / hiring | `saber signal open-jobs --domain <d>` |
+| Firmographics (size, HQ, industry) | `saber signal firmographics --domain <d>` |
+
+The custom questions below remain the tool for anything the library doesn't
+cover (e.g. "Has this company recently appointed a new CTO?").
+
 ## SaaS / Software
 
 **Company signals:**
