@@ -83,8 +83,8 @@ Examples:
 	cmd.AddCommand(newSignalGetCmd())
 	cmd.AddCommand(newSignalListCmd())
 	cmd.AddCommand(newSignalBatchCmd())
-	for _, k := range client.LibrarySignalKeys {
-		cmd.AddCommand(newLibrarySignalCmd(k))
+	for _, k := range client.PrebuiltSignalKeys {
+		cmd.AddCommand(newPrebuiltSignalCmd(k))
 	}
 
 	return cmd
@@ -379,11 +379,11 @@ func printSignalCreated(sig *client.Signal) error {
 	return nil
 }
 
-// newLibrarySignalCmd builds a `saber signal <key>` subcommand for one prebuilt
-// Signal Library key. Sync by default (mirrors the custom-signal flow); --no-wait
+// newPrebuiltSignalCmd builds a `saber signal <key>` subcommand for one prebuilt
+// prebuilt signal key. Sync by default (mirrors the custom-signal flow); --no-wait
 // or --webhook switches to the async endpoint. The "tech" key additionally takes
 // exactly one of --category or --technology.
-func newLibrarySignalCmd(key string) *cobra.Command {
+func newPrebuiltSignalCmd(key string) *cobra.Command {
 	var (
 		domain       string
 		forceRefresh bool
@@ -402,7 +402,7 @@ func newLibrarySignalCmd(key string) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:     key,
-		Short:   fmt.Sprintf("Run the prebuilt %s Signal Library signal against a company domain", key),
+		Short:   fmt.Sprintf("Run the prebuilt %s signal against a company domain", key),
 		Example: example,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if isTech {
@@ -414,7 +414,7 @@ func newLibrarySignalCmd(key string) *cobra.Command {
 			if err := confirmCreditAction(c, ctx); err != nil {
 				return err
 			}
-			req := client.CreateLibrarySignalRequest{
+			req := client.CreatePrebuiltSignalRequest{
 				Domain:       domain,
 				WebhookURL:   webhook,
 				ForceRefresh: forceRefresh,
@@ -422,16 +422,16 @@ func newLibrarySignalCmd(key string) *cobra.Command {
 				Technology:   technology,
 			}
 			if noWait || webhook != "" {
-				sig, err := c.CreateLibrarySignal(ctx, key, req)
+				sig, err := c.CreatePrebuiltSignal(ctx, key, req)
 				if err != nil {
 					return fmt.Errorf("create signal: %w", err)
 				}
 				return printSignalCreated(sig)
 			}
 			return runSyncSignal(func() (*client.Signal, error) {
-				return c.CreateLibrarySignalSync(ctx, key, req, maxWait, nil)
+				return c.CreatePrebuiltSignalSync(ctx, key, req, maxWait, nil)
 			}, func() error {
-				_, err := c.CreateLibrarySignalSync(ctx, key, req, maxWait, os.Stdout)
+				_, err := c.CreatePrebuiltSignalSync(ctx, key, req, maxWait, os.Stdout)
 				return err
 			})
 		},

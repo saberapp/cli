@@ -27,7 +27,7 @@ func TestValidateTechFlags(t *testing.T) {
 	}
 }
 
-func TestNewSignalCmdRegistersLibrarySubcommands(t *testing.T) {
+func TestNewSignalCmdRegistersPrebuiltSubcommands(t *testing.T) {
 	cmd := newSignalCmd()
 	want := map[string]bool{
 		"funding": false, "mna": false, "tech": false,
@@ -45,12 +45,12 @@ func TestNewSignalCmdRegistersLibrarySubcommands(t *testing.T) {
 	}
 }
 
-func TestLibrarySignalCmdTechOnlyFlags(t *testing.T) {
-	tech := newLibrarySignalCmd("tech")
+func TestPrebuiltSignalCmdTechOnlyFlags(t *testing.T) {
+	tech := newPrebuiltSignalCmd("tech")
 	if tech.Flags().Lookup("category") == nil || tech.Flags().Lookup("technology") == nil {
 		t.Errorf("tech subcommand missing --category/--technology flags")
 	}
-	funding := newLibrarySignalCmd("funding")
+	funding := newPrebuiltSignalCmd("funding")
 	if funding.Flags().Lookup("category") != nil || funding.Flags().Lookup("technology") != nil {
 		t.Errorf("funding subcommand must not expose --category/--technology")
 	}

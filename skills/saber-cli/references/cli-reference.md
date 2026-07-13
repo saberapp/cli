@@ -66,7 +66,7 @@ saber signal --profile <linkedin-url> --template <templateId> [flags]
 
 *Required unless `--template` is provided.
 
-### Run a Signal Library signal
+### Run a prebuilt signal
 
 Prebuilt signals invoked by key — no question needed. Keys: `funding`, `mna`,
 `tech`, `open-jobs`, `firmographics`.

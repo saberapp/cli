@@ -304,12 +304,17 @@ Re-running the same plan returns 409 — drop already-attached executionIds
 before retrying. Only score-compatible answer types (boolean, number,
 percentage, currency, list) are clustered; open-text answers are skipped.
 
-### Signal Library (prefer when one matches)
+### Prebuilt signals (use when one answers the question exactly)
 
 Five prebuilt signals run by key with no question design needed: `funding`,
-`mna`, `tech`, `open-jobs`, `firmographics`. Prefer a library signal over a
-custom `--question` whenever one covers the need — same credit confirmation,
-same output, same `--no-wait`/`--webhook` async options.
+`mna`, `tech`, `open-jobs`, `firmographics`. Each answers one commodity fact —
+same credit confirmation, same output, same `--no-wait`/`--webhook` async options.
+
+Use one **only when the question IS that fact**, with no threshold, window,
+filter or judgement attached. "Has this company raised recently?" is `funding`;
+"raised a Series B+ in the last 6 months and has no VP Sales yet" is a custom
+`--question` — a prebuilt key cannot express it, and reshaping the question to
+fit one throws away the qualification criteria that make it worth asking.
 
 ```bash
 saber signal funding --domain acme.com

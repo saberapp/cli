@@ -3,10 +3,11 @@
 Example signal questions organized by industry and buyer persona. Use these as
 starting points when helping users define their buying signals during discovery.
 
-## Signal Library first
+## Prebuilt signals — for the commodity facts only
 
-Before writing a custom question, check whether a prebuilt Signal Library key
-covers it — library signals are one command away and need no question design:
+Five keys answer one commodity fact each, one command away, no question design.
+Use one when the question IS exactly that fact; anything carrying a threshold,
+window, role filter or judgement stays a custom `--question`:
 
 | Need | Command |
 |---|---|
