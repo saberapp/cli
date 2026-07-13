@@ -379,7 +379,7 @@ func printSignalCreated(sig *client.Signal) error {
 	return nil
 }
 
-// newPrebuiltSignalCmd builds a `saber signal <key>` subcommand for one prebuilt
+// newPrebuiltSignalCmd builds a `saber signal <key>` subcommand for one
 // prebuilt signal key. Sync by default (mirrors the custom-signal flow); --no-wait
 // or --webhook switches to the async endpoint. The "tech" key additionally takes
 // exactly one of --category or --technology.

@@ -17,16 +17,16 @@ window, role filter or judgement stays a custom `--question`:
 | Open roles / hiring | `saber signal open-jobs --domain <d>` |
 | Firmographics (size, HQ, industry) | `saber signal firmographics --domain <d>` |
 
-The custom questions below remain the tool for anything the library doesn't
-cover (e.g. "Has this company recently appointed a new CTO?").
+The custom questions below remain the tool for anything the prebuilt signals
+don't cover (e.g. "Has this company recently appointed a new CTO?").
 
 ## SaaS / Software
 
 **Company signals:**
 - "Is this company actively hiring in sales or revenue roles?"
-- "Has this company recently raised a funding round?"
+- "Has this company raised a Series B or later round in the last 6 months?"
 - "Is this company migrating or evaluating new CRM software?"
-- "Does this company use Salesforce as their CRM?"
+- "Is this company showing signs it has outgrown its current CRM?"
 - "Is this company expanding into new markets or geographies?"
 - "Has this company recently appointed a new CTO or VP Engineering?"
 
