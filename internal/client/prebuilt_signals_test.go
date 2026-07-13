@@ -9,24 +9,24 @@ import (
 	"testing"
 )
 
-// TestLibrarySignalKeys pins the hardcoded v1 key set (SEL-3372 catalogue
+// TestPrebuiltSignalKeys pins the hardcoded v1 key set (SEL-3372 catalogue
 // endpoint is deferred; the CLI is the source of truth for now).
-func TestLibrarySignalKeys(t *testing.T) {
+func TestPrebuiltSignalKeys(t *testing.T) {
 	want := []string{"funding", "mna", "tech", "open-jobs", "firmographics"}
-	if len(LibrarySignalKeys) != len(want) {
-		t.Fatalf("LibrarySignalKeys = %v, want %v", LibrarySignalKeys, want)
+	if len(PrebuiltSignalKeys) != len(want) {
+		t.Fatalf("PrebuiltSignalKeys = %v, want %v", PrebuiltSignalKeys, want)
 	}
 	for i, k := range want {
-		if LibrarySignalKeys[i] != k {
-			t.Errorf("LibrarySignalKeys[%d] = %q, want %q", i, LibrarySignalKeys[i], k)
+		if PrebuiltSignalKeys[i] != k {
+			t.Errorf("PrebuiltSignalKeys[%d] = %q, want %q", i, PrebuiltSignalKeys[i], k)
 		}
 	}
 }
 
-// TestCreateLibrarySignalSyncRequestEncoding verifies the sync call hits
+// TestCreatePrebuiltSignalSyncRequestEncoding verifies the sync call hits
 // POST /v1/signals/sync/<key>, carries domain/forceRefresh in the JSON body,
 // and sets the X-Sbr-Timeout-Sec header.
-func TestCreateLibrarySignalSyncRequestEncoding(t *testing.T) {
+func TestCreatePrebuiltSignalSyncRequestEncoding(t *testing.T) {
 	var (
 		gotMethod  string
 		gotPath    string
@@ -45,9 +45,9 @@ func TestCreateLibrarySignalSyncRequestEncoding(t *testing.T) {
 	defer srv.Close()
 
 	c := New(srv.URL, "test-key", "test", false, io.Discard)
-	req := CreateLibrarySignalRequest{Domain: "acme.com", ForceRefresh: true}
-	if _, err := c.CreateLibrarySignalSync(context.Background(), "funding", req, 90, nil); err != nil {
-		t.Fatalf("CreateLibrarySignalSync: %v", err)
+	req := CreatePrebuiltSignalRequest{Domain: "acme.com", ForceRefresh: true}
+	if _, err := c.CreatePrebuiltSignalSync(context.Background(), "funding", req, 90, nil); err != nil {
+		t.Fatalf("CreatePrebuiltSignalSync: %v", err)
 	}
 
 	if gotMethod != http.MethodPost {
@@ -67,9 +67,9 @@ func TestCreateLibrarySignalSyncRequestEncoding(t *testing.T) {
 	}
 }
 
-// TestCreateLibrarySignalSyncResponseDecoding verifies the response decodes
+// TestCreatePrebuiltSignalSyncResponseDecoding verifies the response decodes
 // into the existing Signal struct (no new response type).
-func TestCreateLibrarySignalSyncResponseDecoding(t *testing.T) {
+func TestCreatePrebuiltSignalSyncResponseDecoding(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{
@@ -81,9 +81,9 @@ func TestCreateLibrarySignalSyncResponseDecoding(t *testing.T) {
 	defer srv.Close()
 
 	c := New(srv.URL, "test-key", "test", false, io.Discard)
-	sig, err := c.CreateLibrarySignalSync(context.Background(), "funding", CreateLibrarySignalRequest{Domain: "acme.com"}, 120, nil)
+	sig, err := c.CreatePrebuiltSignalSync(context.Background(), "funding", CreatePrebuiltSignalRequest{Domain: "acme.com"}, 120, nil)
 	if err != nil {
-		t.Fatalf("CreateLibrarySignalSync: %v", err)
+		t.Fatalf("CreatePrebuiltSignalSync: %v", err)
 	}
 	if sig.ID != "sig-42" || sig.Status != SignalStatusCompleted {
 		t.Errorf("id/status = %s/%s, want sig-42/completed", sig.ID, sig.Status)
@@ -96,9 +96,9 @@ func TestCreateLibrarySignalSyncResponseDecoding(t *testing.T) {
 	}
 }
 
-// TestCreateLibrarySignalAsyncPath verifies the async call hits
+// TestCreatePrebuiltSignalAsyncPath verifies the async call hits
 // POST /v1/signals/<key> (no /sync segment, no timeout header).
-func TestCreateLibrarySignalAsyncPath(t *testing.T) {
+func TestCreatePrebuiltSignalAsyncPath(t *testing.T) {
 	var (
 		gotMethod  string
 		gotPath    string
@@ -114,9 +114,9 @@ func TestCreateLibrarySignalAsyncPath(t *testing.T) {
 	defer srv.Close()
 
 	c := New(srv.URL, "test-key", "test", false, io.Discard)
-	sig, err := c.CreateLibrarySignal(context.Background(), "mna", CreateLibrarySignalRequest{Domain: "acme.com", WebhookURL: "https://example.com/hook"})
+	sig, err := c.CreatePrebuiltSignal(context.Background(), "mna", CreatePrebuiltSignalRequest{Domain: "acme.com", WebhookURL: "https://example.com/hook"})
 	if err != nil {
-		t.Fatalf("CreateLibrarySignal: %v", err)
+		t.Fatalf("CreatePrebuiltSignal: %v", err)
 	}
 	if gotMethod != http.MethodPost {
 		t.Errorf("method = %s, want POST", gotMethod)
@@ -132,27 +132,27 @@ func TestCreateLibrarySignalAsyncPath(t *testing.T) {
 	}
 }
 
-// TestCreateLibrarySignalTechBodySerialization pins the tech key's wire
+// TestCreatePrebuiltSignalTechBodySerialization pins the tech key's wire
 // contract: setting category omits technology from the JSON body entirely
 // (omitempty), and vice-versa — the server rejects requests carrying both.
-func TestCreateLibrarySignalTechBodySerialization(t *testing.T) {
+func TestCreatePrebuiltSignalTechBodySerialization(t *testing.T) {
 	tests := []struct {
 		name    string
-		req     CreateLibrarySignalRequest
+		req     CreatePrebuiltSignalRequest
 		wantKey string
 		wantVal string
 		omitKey string
 	}{
 		{
 			name:    "category set omits technology",
-			req:     CreateLibrarySignalRequest{Domain: "acme.com", Category: "crm"},
+			req:     CreatePrebuiltSignalRequest{Domain: "acme.com", Category: "crm"},
 			wantKey: "category",
 			wantVal: "crm",
 			omitKey: "technology",
 		},
 		{
 			name:    "technology set omits category",
-			req:     CreateLibrarySignalRequest{Domain: "acme.com", Technology: "salesforce"},
+			req:     CreatePrebuiltSignalRequest{Domain: "acme.com", Technology: "salesforce"},
 			wantKey: "technology",
 			wantVal: "salesforce",
 			omitKey: "category",
@@ -170,8 +170,8 @@ func TestCreateLibrarySignalTechBodySerialization(t *testing.T) {
 			defer srv.Close()
 
 			c := New(srv.URL, "test-key", "test", false, io.Discard)
-			if _, err := c.CreateLibrarySignal(context.Background(), "tech", tt.req); err != nil {
-				t.Fatalf("CreateLibrarySignal: %v", err)
+			if _, err := c.CreatePrebuiltSignal(context.Background(), "tech", tt.req); err != nil {
+				t.Fatalf("CreatePrebuiltSignal: %v", err)
 			}
 			if gotBody[tt.wantKey] != tt.wantVal {
 				t.Errorf("body %s = %v, want %q", tt.wantKey, gotBody[tt.wantKey], tt.wantVal)

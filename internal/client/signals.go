@@ -118,18 +118,18 @@ func (c *Client) CreateCompanySignalSync(ctx context.Context, req CreateCompanyS
 	return &sig, nil
 }
 
-// --- Signal Library ---
+// --- prebuilt signals ---
 
-// LibrarySignalKeys are the prebuilt Signal Library keys exposed as `saber
+// PrebuiltSignalKeys are the prebuilt signal keys exposed as `saber
 // signal <key>` subcommands. Hardcoded for v1 — the GET /v1/signals catalogue
 // endpoint (SEL-3372) is deferred to Post-v1.
-var LibrarySignalKeys = []string{"funding", "mna", "tech", "open-jobs", "firmographics"}
+var PrebuiltSignalKeys = []string{"funding", "mna", "tech", "open-jobs", "firmographics"}
 
-// CreateLibrarySignalRequest is the payload for POST /v1/signals/<key> and
+// CreatePrebuiltSignalRequest is the payload for POST /v1/signals/<key> and
 // POST /v1/signals/sync/<key>. Category and Technology apply to the "tech"
 // key only and are mutually exclusive; the command layer enforces
 // exactly-one, the client does not validate.
-type CreateLibrarySignalRequest struct {
+type CreatePrebuiltSignalRequest struct {
 	Domain       string `json:"domain"`
 	WebhookURL   string `json:"webhookUrl,omitempty"`
 	ForceRefresh bool   `json:"forceRefresh,omitempty"`
@@ -137,8 +137,8 @@ type CreateLibrarySignalRequest struct {
 	Technology   string `json:"technology,omitempty"` // tech only
 }
 
-// CreateLibrarySignal creates an async Signal Library signal.
-func (c *Client) CreateLibrarySignal(ctx context.Context, key string, req CreateLibrarySignalRequest) (*Signal, error) {
+// CreatePrebuiltSignal creates an async prebuilt signal.
+func (c *Client) CreatePrebuiltSignal(ctx context.Context, key string, req CreatePrebuiltSignalRequest) (*Signal, error) {
 	var sig Signal
 	if err := c.Post(ctx, fmt.Sprintf("/v1/signals/%s", key), req, &sig, nil); err != nil {
 		return nil, err
@@ -146,11 +146,11 @@ func (c *Client) CreateLibrarySignal(ctx context.Context, key string, req Create
 	return &sig, nil
 }
 
-// CreateLibrarySignalSync runs a Signal Library signal and waits synchronously
+// CreatePrebuiltSignalSync runs a prebuilt signal and waits synchronously
 // for the result. timeoutSec is passed as X-Sbr-Timeout-Sec (1–900). A 202
 // response means the server timed out before the signal completed; the
 // returned signal will have Status == "processing".
-func (c *Client) CreateLibrarySignalSync(ctx context.Context, key string, req CreateLibrarySignalRequest, timeoutSec int, rawDst io.Writer) (*Signal, error) {
+func (c *Client) CreatePrebuiltSignalSync(ctx context.Context, key string, req CreatePrebuiltSignalRequest, timeoutSec int, rawDst io.Writer) (*Signal, error) {
 	headers := map[string]string{
 		"X-Sbr-Timeout-Sec": strconv.Itoa(timeoutSec),
 	}
