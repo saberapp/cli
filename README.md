@@ -234,13 +234,21 @@ make install   # copy to $GOPATH/bin
 
 ### Releasing
 
-Tag with `v<semver>` to trigger the release workflow:
-```sh
-git tag v0.2.0
-git push origin v0.2.0
-```
+Every merged PR to `main` releases a new version. Do not push tags by hand.
 
-goreleaser builds binaries for macOS/Linux/Windows and uploads them to the GitHub release.
+1. `03-tag-on-merge` reads the labels on the merged PR and pushes the next `vX.Y.Z` tag:
+
+   | PR label | Result |
+   |---|---|
+   | (none) | patch bump, for example `v0.1.13` → `v0.1.14` |
+   | `release:minor` | minor bump, for example `v0.1.13` → `v0.2.0` |
+   | `release:skip` | no tag (use for docs-only or CI-only changes; wins over `release:minor`) |
+
+2. The tag push starts `01-release`. goreleaser builds binaries for macOS/Linux/Windows, uploads them to the GitHub release, and updates the Homebrew tap.
+
+To see the next version without releasing, run `03-tag-on-merge` from the Actions tab with `dry_run` on. To release by hand from `main`, run it with `dry_run` off.
+
+The tag is pushed with the `saber-cli-bot` GitHub App token, because a tag pushed with `GITHUB_TOKEN` does not start other workflows.
 
 ---
 
