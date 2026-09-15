@@ -721,6 +721,11 @@ one-line notice is printed to stderr when an update is available. The check is
 skipped when `--json`, `--quiet`, or `SABER_NO_UPDATE_CHECK=1` is set, when
 stderr is not a TTY, or on dev builds.
 
+When the API reports a minimum supported CLI version (`X-Saber-Cli-Min-Version`)
+and this build is below it, or is exactly the minimum while a newer release
+exists, a one-line warning to run `saber update` is printed to stderr instead.
+Builds below the minimum get HTTP 426 from the API.
+
 ## Global Flags
 
 Available on every command:

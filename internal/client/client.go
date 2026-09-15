@@ -153,8 +153,14 @@ func (c *Client) Do(ctx context.Context, method, path string, bodyBytes []byte, 
 			continue
 		}
 
+		// Record before the status branches: a 426 carries the header too.
+		recordMinVersion(resp.Header)
+
 		if c.verbose {
 			c.logf("< HTTP %d\n", resp.StatusCode)
+			if v := resp.Header.Get(MinVersionHeader); v != "" {
+				c.logf("< %s: %s\n", MinVersionHeader, v)
+			}
 			if v := resp.Header.Get("X-Ratelimit-Limit"); v != "" {
 				c.logf("< X-Ratelimit-Limit: %s\n", v)
 				c.logf("< X-Ratelimit-Remaining: %s\n", resp.Header.Get("X-Ratelimit-Remaining"))
