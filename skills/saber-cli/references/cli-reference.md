@@ -571,6 +571,49 @@ The background check is **skipped** when any of these conditions apply:
 
 The cached state is stored in `~/.saber/update-check.json`.
 
+### Minimum supported version
+
+The Saber API reports the oldest CLI version it still accepts in the
+`X-Saber-Cli-Min-Version` response header. Older builds get HTTP 426 with the
+message `Run "saber update"`. After a command finishes, the CLI prints one
+warning line to stderr when:
+
+- the build is below the minimum:
+  `Warning: saber CLI v0.1.13 is below the minimum supported version v0.2.0 and will stop working. Run "saber update".`
+- the build is exactly the minimum and a newer release is known:
+  `Warning: saber CLI v0.2.0 is the oldest version the API supports. Update to v0.2.1 before support ends. Run "saber update".`
+
+This warning replaces the update notice for that run. It makes no extra network
+request. It is skipped with `--json` or `--quiet`, when stderr is not a TTY, and
+on dev builds. `SABER_NO_UPDATE_CHECK` does not disable it. `--verbose` prints
+the header.
+
+## Usage Data
+
+The CLI sends one anonymous event per command run (`cli.command.executed`) to
+PostHog (EU).
+
+**Sent:** command name (for example `signal create`), the NAMES of the flags
+that were set, CLI version, OS and architecture, exit status, exit code, and
+duration in milliseconds. The organisation ID identifies the customer.
+
+**Never sent:** the API key, positional arguments, flag values, company or
+contact data, signal questions, and API responses.
+
+```bash
+saber telemetry status    # show the current setting
+saber telemetry enable    # start sending
+saber telemetry disable   # stop sending
+```
+
+The first run in a terminal asks the question, and the recommended answer is
+yes. A run that cannot ask — no terminal, `--json`, or `--quiet` — keeps the
+default (on) without a prompt. Sending happens in the background, is bounded by
+a 2-second timeout, and never changes a command's output, exit code, or speed.
+
+The answer is stored in `~/.saber/telemetry.json`. A build that you compile
+yourself carries no analytics key, so it sends nothing.
+
 ## Global Flags
 
 Available on every command:
@@ -588,6 +631,8 @@ Available on every command:
 |---|---|
 | `SABER_API_KEY` | API key (overrides `~/.saber/credentials.json`) |
 | `SABER_NO_UPDATE_CHECK` | Set to any value to disable the background update check |
+| `SABER_TELEMETRY` | `0` disables usage data for the run; `1` enables it without a prompt |
+| `DO_NOT_TRACK` | Set to any value other than `0` to disable usage data |
 
 ## Local Development
 

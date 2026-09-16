@@ -153,6 +153,43 @@ Available on every command:
 
 ---
 
+## Usage data
+
+The CLI can send anonymous usage data, so we can see which commands need work.
+The first run in a terminal asks you. Press Enter to accept, or answer `n`.
+
+**What is sent**
+
+| Field | Example |
+|---|---|
+| Command name | `signal create` |
+| Flag names you used (never their values) | `json`, `list` |
+| CLI version | `0.1.13` |
+| Operating system and architecture | `darwin`, `arm64` |
+| Result and duration | `ok`, exit code `0`, `812 ms` |
+| Your organisation ID | used to group events by customer |
+
+**What is never sent**
+
+Your API key, command arguments, flag values, company or contact data, signal
+questions, and API responses. Nothing that you type as an argument leaves your
+machine.
+
+**How to turn it off**
+
+```sh
+saber telemetry disable        # permanent, saved in ~/.saber/telemetry.json
+saber telemetry status         # show the current setting
+SABER_TELEMETRY=0 saber ...    # off for one command
+DO_NOT_TRACK=1 saber ...       # off for one command (cross-tool convention)
+```
+
+Data is sent to PostHog (EU). Sending happens in the background and can never
+change a command's output, its exit code, or how long it takes. Builds that you
+compile yourself contain no analytics key, so they send nothing.
+
+---
+
 ## Running locally for testing
 
 Point the CLI at your local Go Platform instance instead of production.
@@ -234,13 +271,21 @@ make install   # copy to $GOPATH/bin
 
 ### Releasing
 
-Tag with `v<semver>` to trigger the release workflow:
-```sh
-git tag v0.2.0
-git push origin v0.2.0
-```
+Every merged PR to `main` releases a new version. Do not push tags by hand.
 
-goreleaser builds binaries for macOS/Linux/Windows and uploads them to the GitHub release.
+1. `03-tag-on-merge` reads the labels on the merged PR and pushes the next `vX.Y.Z` tag:
+
+   | PR label | Result |
+   |---|---|
+   | (none) | patch bump, for example `v0.1.13` → `v0.1.14` |
+   | `release:minor` | minor bump, for example `v0.1.13` → `v0.2.0` |
+   | `release:skip` | no tag (use for docs-only or CI-only changes; wins over `release:minor`) |
+
+2. The tag push starts `01-release`. goreleaser builds binaries for macOS/Linux/Windows, uploads them to the GitHub release, and updates the Homebrew tap.
+
+To see the next version without releasing, run `03-tag-on-merge` from the Actions tab with `dry_run` on. To release by hand from `main`, run it with `dry_run` off.
+
+The tag is pushed with the `saber-cli-bot` GitHub App token, because a tag pushed with `GITHUB_TOKEN` does not start other workflows.
 
 ---
 

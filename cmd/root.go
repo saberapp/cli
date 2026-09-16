@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/saberapp/cli/internal/client"
 	"github.com/saberapp/cli/internal/update"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
@@ -36,12 +37,20 @@ Get an API key at: https://ai.saber.app → Settings → API Keys`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			// Recorded for the telemetry event written after the command ends.
+			executedCmd = cmd
+			startTelemetry(cmd)
 			if shouldSkipUpdateCheck(cmd) {
 				return
 			}
 			updateCh = update.RunBackgroundCheck(cliVersion, 24*time.Hour)
 		},
 		PersistentPostRun: func(cmd *cobra.Command, args []string) {
+			// The minimum-version warning replaces the generic update
+			// notice, so the user sees one line, not two.
+			if printMinVersionWarning() {
+				return
+			}
 			if updateCh == nil {
 				return
 			}
@@ -84,10 +93,48 @@ Get an API key at: https://ai.saber.app → Settings → API Keys`,
 	root.AddCommand(newUpdateCmd())
 	root.AddCommand(newOrgCmd())
 	root.AddCommand(newScoringCmd())
+	root.AddCommand(newTelemetryCmd())
 	root.AddCommand(newInitClaudeCmd())
 	root.SetHelpCommand(newHelpCmd(root))
 
 	return root
+}
+
+// printMinVersionWarning prints one stderr line when the API reported a minimum
+// CLI version that this build is below, or has reached while a newer release
+// is available. It makes no network call: the minimum comes from this
+// command's API responses and the latest release from the update-check cache.
+// It reports whether it printed.
+func printMinVersionWarning() bool {
+	if cliVersion == "dev" || jsonOutput || quiet || !term.IsTerminal(int(os.Stderr.Fd())) {
+		return false
+	}
+	minimum := client.MinSupportedVersion()
+	if minimum == "" {
+		return false
+	}
+	msg := minVersionWarning(cliVersion, minimum, update.LoadState().LatestVersion)
+	if msg == "" {
+		return false
+	}
+	fmt.Fprintln(os.Stderr, msg)
+	return true
+}
+
+// minVersionWarning returns the warning for current against the API minimum and
+// the latest known release, or "" when no warning applies.
+func minVersionWarning(current, minimum, latest string) string {
+	if minimum == "" {
+		return ""
+	}
+	if update.IsBelow(current, minimum) {
+		return update.FormatMinVersionWarning(current, minimum)
+	}
+	atFloor := !update.IsBelow(minimum, current)
+	if atFloor && update.IsBelow(current, latest) {
+		return update.FormatMinVersionFloorWarning(current, latest)
+	}
+	return ""
 }
 
 // shouldSkipUpdateCheck returns true when the passive background version check

@@ -41,3 +41,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+          # PostHog project key for CLI usage events (SEL-4304). The secret does
+          # not exist yet: until it is added, the key is empty and released
+          # builds send no telemetry.
+          POSTHOG_CLI_KEY: ${{ secrets.POSTHOG_CLI_KEY }}
