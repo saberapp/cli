@@ -721,6 +721,25 @@ one-line notice is printed to stderr when an update is available. The check is
 skipped when `--json`, `--quiet`, or `SABER_NO_UPDATE_CHECK=1` is set, when
 stderr is not a TTY, or on dev builds.
 
+### Usage data
+
+The CLI sends one anonymous event per command to PostHog: the command name,
+the flag NAMES used, the CLI version, the OS and architecture, the exit status,
+and the duration. It never sends the API key, arguments, flag values, or result
+data. The first run in a terminal asks the user, and the recommended answer is
+yes.
+
+```bash
+saber telemetry status           # on, off, or not answered yet
+saber telemetry disable          # stop sending
+saber telemetry enable           # start sending
+SABER_TELEMETRY=0 saber credits  # off for one command
+DO_NOT_TRACK=1 saber credits     # off for one command
+```
+
+Agents and scripts do not see the question: a run without a terminal, or with
+`--json` or `--quiet`, never prompts.
+
 ## Global Flags
 
 Available on every command:

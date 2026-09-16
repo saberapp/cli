@@ -153,6 +153,43 @@ Available on every command:
 
 ---
 
+## Usage data
+
+The CLI can send anonymous usage data, so we can see which commands need work.
+The first run in a terminal asks you. Press Enter to accept, or answer `n`.
+
+**What is sent**
+
+| Field | Example |
+|---|---|
+| Command name | `signal create` |
+| Flag names you used (never their values) | `json`, `list` |
+| CLI version | `0.1.13` |
+| Operating system and architecture | `darwin`, `arm64` |
+| Result and duration | `ok`, exit code `0`, `812 ms` |
+| Your organisation ID | used to group events by customer |
+
+**What is never sent**
+
+Your API key, command arguments, flag values, company or contact data, signal
+questions, and API responses. Nothing that you type as an argument leaves your
+machine.
+
+**How to turn it off**
+
+```sh
+saber telemetry disable        # permanent, saved in ~/.saber/telemetry.json
+saber telemetry status         # show the current setting
+SABER_TELEMETRY=0 saber ...    # off for one command
+DO_NOT_TRACK=1 saber ...       # off for one command (cross-tool convention)
+```
+
+Data is sent to PostHog (EU). Sending happens in the background and can never
+change a command's output, its exit code, or how long it takes. Builds that you
+compile yourself contain no analytics key, so they send nothing.
+
+---
+
 ## Running locally for testing
 
 Point the CLI at your local Go Platform instance instead of production.

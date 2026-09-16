@@ -36,6 +36,9 @@ Get an API key at: https://ai.saber.app → Settings → API Keys`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			// Recorded for the telemetry event written after the command ends.
+			executedCmd = cmd
+			startTelemetry(cmd)
 			if shouldSkipUpdateCheck(cmd) {
 				return
 			}
@@ -84,6 +87,7 @@ Get an API key at: https://ai.saber.app → Settings → API Keys`,
 	root.AddCommand(newUpdateCmd())
 	root.AddCommand(newOrgCmd())
 	root.AddCommand(newScoringCmd())
+	root.AddCommand(newTelemetryCmd())
 	root.AddCommand(newInitClaudeCmd())
 	root.SetHelpCommand(newHelpCmd(root))
 
