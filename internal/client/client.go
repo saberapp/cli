@@ -8,6 +8,7 @@ import (
 	"io"
 	"math/rand"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -17,7 +18,32 @@ const (
 	defaultTimeout         = 60 * time.Second
 	maxRetries             = 3
 	rateLimitWarnThreshold = 10
+	// maxOrgScanBytes caps the body size scanned for an organization id, so a
+	// large list response never costs measurable time.
+	maxOrgScanBytes = 1 << 20
 )
+
+// organizationIDPattern finds the organization id that several endpoints
+// already return (templates, monitors, scoring profiles). The public API has
+// no endpoint that returns the id on its own, so the CLI learns it from the
+// responses the user's own commands receive.
+var organizationIDPattern = regexp.MustCompile(`"organizationId"\s*:\s*"([^"]{1,128})"`)
+
+// OnOrganizationID is called with the organization id seen in a successful
+// response body. It is never called with an empty value. The telemetry package
+// sets it; it is a variable so the client keeps no dependency on telemetry.
+var OnOrganizationID func(string)
+
+// observeOrganizationID reports an organization id found in a response body.
+// It never fails and never blocks the request path.
+func observeOrganizationID(body []byte) {
+	if OnOrganizationID == nil || len(body) == 0 || len(body) > maxOrgScanBytes {
+		return
+	}
+	if m := organizationIDPattern.FindSubmatch(body); m != nil {
+		OnOrganizationID(string(m[1]))
+	}
+}
 
 // Client wraps http.Client with auth, retry, and verbose logging.
 type Client struct {
@@ -219,6 +245,8 @@ func (c *Client) Do(ctx context.Context, method, path string, bodyBytes []byte, 
 			}
 			return &APIError{StatusCode: resp.StatusCode, Message: msg, Details: eb.details()}
 		}
+
+		observeOrganizationID(respBody)
 
 		// Success — no content
 		if resp.StatusCode == http.StatusNoContent || len(respBody) == 0 {

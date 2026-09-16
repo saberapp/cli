@@ -588,6 +588,32 @@ request. It is skipped with `--json` or `--quiet`, when stderr is not a TTY, and
 on dev builds. `SABER_NO_UPDATE_CHECK` does not disable it. `--verbose` prints
 the header.
 
+## Usage Data
+
+The CLI sends one anonymous event per command run (`cli.command.executed`) to
+PostHog (EU).
+
+**Sent:** command name (for example `signal create`), the NAMES of the flags
+that were set, CLI version, OS and architecture, exit status, exit code, and
+duration in milliseconds. The organisation ID identifies the customer.
+
+**Never sent:** the API key, positional arguments, flag values, company or
+contact data, signal questions, and API responses.
+
+```bash
+saber telemetry status    # show the current setting
+saber telemetry enable    # start sending
+saber telemetry disable   # stop sending
+```
+
+The first run in a terminal asks the question, and the recommended answer is
+yes. A run that cannot ask — no terminal, `--json`, or `--quiet` — keeps the
+default (on) without a prompt. Sending happens in the background, is bounded by
+a 2-second timeout, and never changes a command's output, exit code, or speed.
+
+The answer is stored in `~/.saber/telemetry.json`. A build that you compile
+yourself carries no analytics key, so it sends nothing.
+
 ## Global Flags
 
 Available on every command:
@@ -605,6 +631,8 @@ Available on every command:
 |---|---|
 | `SABER_API_KEY` | API key (overrides `~/.saber/credentials.json`) |
 | `SABER_NO_UPDATE_CHECK` | Set to any value to disable the background update check |
+| `SABER_TELEMETRY` | `0` disables usage data for the run; `1` enables it without a prompt |
+| `DO_NOT_TRACK` | Set to any value other than `0` to disable usage data |
 
 ## Local Development
 
