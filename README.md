@@ -74,6 +74,29 @@ saber signal --domain acme.com --question "..." --force-refresh
 | `--poll-interval` | `3` | Seconds between poll attempts |
 | `--max-wait` | `120` | Max seconds to wait before timing out |
 
+### `saber contact find-phone`
+
+Find a verified mobile number for one contact. Phone lookup must be enabled for
+your organization. Use a profile URL, or a first name and last name with a company
+name or domain:
+
+```sh
+saber contact find-phone --profile https://www.linkedin.com/in/jane-doe-example
+saber contact find-phone --first-name Jane --last-name Doe --domain example.com
+saber contact find-phone get <runId>
+```
+
+The server waits up to 120 seconds by default. Set `--max-wait` to 1-120 seconds,
+or use `--no-wait` to return immediately. These flags are mutually exclusive.
+A processing run prints its ID; use `get` to read the result later. A completed
+result can return immediately, including with `--no-wait`.
+
+Credits are consumed only if a mobile number is found. A completed repeat lookup
+for the same person with the same input within 30 days returns the earlier result
+without a new charge. The `Run credits` line describes that run and can show
+`charged` on a repeat. Use `--yes` to skip confirmation or `--json` for the raw
+response.
+
 ### `saber list company`
 
 Manage company lists backed by Saber's firmographic database.

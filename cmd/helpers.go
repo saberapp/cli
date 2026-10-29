@@ -14,6 +14,10 @@ import (
 // confirmCreditAction checks the credit balance and prompts the user to confirm before
 // proceeding with a credit-consuming action. It is skipped when --yes or --quiet is set.
 func confirmCreditAction(c *client.Client, ctx context.Context) error {
+	return confirmCreditActionWithMessage(c, ctx, "This will consume credits (balance: %s). Proceed? [y/N] ")
+}
+
+func confirmCreditActionWithMessage(c *client.Client, ctx context.Context, message string) error {
 	if yes || quiet {
 		return nil
 	}
@@ -21,8 +25,7 @@ func confirmCreditAction(c *client.Client, ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("check credits: %w", err)
 	}
-	msg := fmt.Sprintf("This will consume credits (balance: %s). Proceed? [y/N] ",
-		formatCredits(bal.RemainingCredits))
+	msg := fmt.Sprintf(message, formatCredits(bal.RemainingCredits))
 	if !term.IsTerminal(int(os.Stdin.Fd())) {
 		return fmt.Errorf("%suse --yes to confirm non-interactively", msg)
 	}
