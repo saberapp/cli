@@ -11,10 +11,11 @@ import (
 func newContactCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "contact",
-		Short: "Search for contacts and find verified emails",
+		Short: "Search for contacts and find verified emails and phone numbers",
 	}
 	cmd.AddCommand(newContactSearchCmd())
 	cmd.AddCommand(newContactFindEmailCmd())
+	cmd.AddCommand(newContactFindPhoneCmd())
 	return cmd
 }
 

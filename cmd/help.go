@@ -225,6 +225,8 @@ func printCheatSheet(w io.Writer) {
 	entry(w, "saber list contact delete <listId>", "Delete a contact list")
 	entry(w, "saber list contact show <listId>", "List contacts in a contact list")
 	entry(w, "saber contact search [filters]", "Preview contacts matching filters without creating a list")
+	entry(w, "saber contact find-phone --profile <url>", "Find a verified mobile number (must be enabled for your organization)")
+	entry(w, "saber contact find-phone get <runId>", "Read a phone lookup result or check a processing run")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "  Flags (create / search):")
 	flag(w, "--name <name>", "List name  [required for create]")
