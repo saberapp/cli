@@ -350,6 +350,47 @@ at the same domain finish in under 200ms (warm path); cold starts run a
 couple of seconds. Catch-all domains return the modal real-world pattern
 with `accept_all: true` — treat as lower confidence.
 
+### Find a verified mobile number for a contact
+
+Use this when you have one contact's profile URL or their name and company.
+Phone lookup must be enabled for the organization.
+
+```bash
+saber contact find-phone --profile https://www.linkedin.com/in/jane-doe-example
+saber contact find-phone --first-name Jane --last-name Doe --company Example
+saber contact find-phone get <runId>
+```
+
+| Flag | Default | Description |
+|---|---|---|
+| `--profile` | | Contact profile URL |
+| `--first-name` | | Contact first name |
+| `--last-name` | | Contact last name |
+| `--company` | | Company name |
+| `--domain` | | Company domain |
+| `--max-wait` | `120` | Seconds the server waits for a result, 1-120 |
+| `--no-wait` | `false` | Return immediately with the run ID or a completed result |
+
+Provide `--profile`, or both `--first-name` and `--last-name` with at least one
+of `--company` and `--domain`. Name and company flags can supplement a profile.
+All values are trimmed. The API validates profile URLs.
+
+The CLI sends the wait to the server and does not poll. `--no-wait` and an
+explicit `--max-wait` cannot be combined. Processing output includes the run ID
+and the `get` command to read it later. `get` takes exactly one run ID, has no
+credit confirmation, and rejects runs that are not phone lookups.
+
+The lookup prompts for credit confirmation; use `--yes` to skip it. Credits are
+consumed only if a mobile number is found. A completed repeat with the same
+input within 30 days returns the earlier result without a new charge. The
+`Run credits` line describes the run and can still show `charged` on a repeat.
+
+`--json` returns the raw run object. `--quiet` suppresses output. Completed,
+not-found, processing, and failed runs all exit 0. In JSON, use `status`,
+`result.found`, `error`, `errorCode`, and `retryable` to inspect the outcome.
+If the client times out, run the same lookup command again to continue the run
+in progress. Use `get` when you already have a run ID.
+
 ### Manage contact lists
 
 ```bash

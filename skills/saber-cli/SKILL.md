@@ -182,6 +182,33 @@ by filter) and from `list contact create` (which snapshots a Sales Navigator lis
 Catch-all domains return the modal real-world pattern with `accept_all: true` —
 treat as lower confidence.
 
+**Look up a single contact's mobile number** when you have a profile URL or a
+first name and last name with a company name or domain. Phone lookup must be
+enabled for the organization.
+
+```bash
+saber contact find-phone --profile https://www.linkedin.com/in/jane-doe-example
+saber contact find-phone --first-name Jane --last-name Doe --domain example.com
+saber contact find-phone get <runId>
+```
+
+Flags: `--profile`, `--first-name`, `--last-name`, `--company` (company name),
+`--domain` (company domain), `--max-wait` (1-120 seconds, default 120), and
+`--no-wait`. With `--profile`, the name and company flags are optional extras.
+All input values are trimmed before validation.
+
+The server waits for the result; the CLI does not poll. Use `--no-wait` to return
+immediately, or `--max-wait` to change the wait. Do not combine these flags.
+When a run is still processing, save its ID and use `get` to read it later.
+A completed result prints immediately, including with `--no-wait`.
+
+Credits are consumed only if a mobile number is found. Completed repeats with
+the same input within 30 days return the earlier result without a new charge.
+The displayed run credit state refers to the original run. Use `--yes` for
+non-interactive lookup and `--json` for the raw response. Reading a run with
+`get` has no confirmation prompt. Not-found and failed runs exit 0; inspect
+`status`, `result.found`, `errorCode`, and `retryable` in JSON for automation.
+
 ## Market Signals
 
 Market signals monitor external data sources continuously and deliver matching

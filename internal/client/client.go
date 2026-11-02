@@ -22,6 +22,7 @@ const (
 // Client wraps http.Client with auth, retry, and verbose logging.
 type Client struct {
 	httpClient *http.Client
+	timeout    time.Duration
 	baseURL    string
 	apiKey     string
 	version    string
@@ -32,7 +33,8 @@ type Client struct {
 // New creates a new API client.
 func New(baseURL, apiKey, version string, verbose bool, stderr io.Writer) *Client {
 	return &Client{
-		httpClient: &http.Client{Timeout: defaultTimeout},
+		httpClient: &http.Client{},
+		timeout:    defaultTimeout,
 		baseURL:    strings.TrimRight(baseURL, "/"),
 		apiKey:     apiKey,
 		version:    version,
@@ -147,7 +149,7 @@ func (c *Client) Do(ctx context.Context, method, path string, bodyBytes []byte, 
 			}
 		}
 
-		resp, err := c.httpClient.Do(req)
+		resp, respBody, err := c.doAttempt(req)
 		if err != nil {
 			lastErr = err
 			continue
@@ -167,13 +169,6 @@ func (c *Client) Do(ctx context.Context, method, path string, bodyBytes []byte, 
 			if r, err := strconv.Atoi(remaining); err == nil && r <= rateLimitWarnThreshold {
 				c.logf("warning: only %d API requests remaining in this window\n", r)
 			}
-		}
-
-		respBody, err := io.ReadAll(resp.Body)
-		_ = resp.Body.Close()
-		if err != nil {
-			lastErr = fmt.Errorf("read response: %w", err)
-			continue
 		}
 
 		if resp.StatusCode == http.StatusTooManyRequests {
@@ -233,6 +228,32 @@ func (c *Client) Do(ctx context.Context, method, path string, bodyBytes []byte, 
 		return nil
 	}
 	return lastErr
+}
+
+func (c *Client) attemptTimeout(req *http.Request) time.Duration {
+	timeout := c.timeout
+	if n, err := strconv.Atoi(req.Header.Get("X-Sbr-Timeout-Sec")); err == nil && n > 0 {
+		if wait := time.Duration(n)*time.Second + 15*time.Second; wait > timeout {
+			timeout = wait
+		}
+	}
+	return timeout
+}
+
+func (c *Client) doAttempt(req *http.Request) (*http.Response, []byte, error) {
+	ctx, cancel := context.WithTimeout(req.Context(), c.attemptTimeout(req))
+	defer cancel()
+
+	resp, err := c.httpClient.Do(req.Clone(ctx))
+	if err != nil {
+		return nil, nil, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, nil, fmt.Errorf("read response: %w", err)
+	}
+	return resp, body, nil
 }
 
 // Get is a convenience wrapper for GET requests.
