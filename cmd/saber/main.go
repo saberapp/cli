@@ -1,12 +1,9 @@
 package main
 
 import (
-	"errors"
-	"fmt"
 	"os"
 
 	"github.com/saberapp/cli/cmd"
-	"github.com/saberapp/cli/internal/config"
 )
 
 // Injected by ldflags at build time.
@@ -17,13 +14,7 @@ var (
 )
 
 func main() {
-	root := cmd.NewRootCmd(version, commit, date)
-	if err := root.Execute(); err != nil {
-		var notAuth *config.ErrNotAuthenticated
-		if errors.As(err, &notAuth) {
-			os.Exit(2)
-		}
-		fmt.Fprintln(os.Stderr, "error:", err)
-		os.Exit(1)
-	}
+	// cmd.Execute owns the exit-code mapping and the usage event, so a failed
+	// command is still recorded with its real status.
+	os.Exit(cmd.Execute(version, commit, date))
 }

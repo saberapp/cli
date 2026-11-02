@@ -121,6 +121,37 @@ func FormatNotice(current, latest string) string {
 	return fmt.Sprintf("Notice: Update available v%s -> v%s. Run \"saber update\" to upgrade.", current, latest)
 }
 
+// FormatMinVersionWarning returns the stderr warning for a build that is older
+// than the minimum version the API supports.
+func FormatMinVersionWarning(current, minimum string) string {
+	return fmt.Sprintf("Warning: saber CLI v%s is below the minimum supported version v%s and will stop working. Run \"saber update\".", current, minimum)
+}
+
+// FormatMinVersionFloorWarning returns the stderr warning for a build that is
+// exactly the minimum version the API supports while a newer release exists.
+func FormatMinVersionFloorWarning(current, latest string) string {
+	return fmt.Sprintf("Warning: saber CLI v%s is the oldest version the API supports. Update to v%s before support ends. Run \"saber update\".", current, latest)
+}
+
+// IsBelow reports whether current is an older release than other. Both may
+// carry a leading "v"; pre-release suffixes are ignored. It returns false when
+// either version does not parse (for example "dev"), so callers never warn on
+// builds they cannot compare.
+func IsBelow(current, other string) bool {
+	cMajor, cMinor, cPatch, cok := parseSemver(strings.TrimPrefix(current, "v"))
+	oMajor, oMinor, oPatch, ook := parseSemver(strings.TrimPrefix(other, "v"))
+	if !cok || !ook {
+		return false
+	}
+	if cMajor != oMajor {
+		return cMajor < oMajor
+	}
+	if cMinor != oMinor {
+		return cMinor < oMinor
+	}
+	return cPatch < oPatch
+}
+
 // RunBackgroundCheck starts a non-blocking version check. It returns a channel
 // that will receive at most one message (the update notice) if a newer version
 // is available. The channel is closed when the check completes or is skipped.

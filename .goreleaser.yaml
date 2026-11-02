@@ -1,5 +1,13 @@
 version: 2
 
+# POSTHOG_CLI_KEY is the PostHog project key for CLI usage events (SEL-4304).
+# It is a repository secret supplied by the release workflow, and it is
+# deliberately absent from the source tree. When it is unset — local builds,
+# forks, `goreleaser build --snapshot` — the key stays empty and the CLI sends
+# no telemetry at all.
+env:
+  - POSTHOG_CLI_KEY={{ if index .Env "POSTHOG_CLI_KEY" }}{{ .Env.POSTHOG_CLI_KEY }}{{ end }}
+
 before:
   hooks:
     - go mod tidy
@@ -25,6 +33,7 @@ builds:
       - -X main.version={{.Version}}
       - -X main.commit={{.Commit}}
       - -X main.date={{.Date}}
+      - -X github.com/saberapp/cli/internal/telemetry.posthogKey={{ .Env.POSTHOG_CLI_KEY }}
 
 archives:
   - id: default

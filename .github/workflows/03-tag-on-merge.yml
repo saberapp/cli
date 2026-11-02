@@ -1,0 +1,143 @@
+name: 03-tag-on-merge
+
+# Every merged PR to main creates the next vX.Y.Z tag. The tag push starts
+# 01-release (goreleaser + Homebrew tap).
+#
+# Labels on the merged PR:
+#   (none)          patch bump
+#   release:minor   minor bump
+#   release:skip    no tag (wins over release:minor)
+#
+# The tag is pushed with the saber-cli-bot App token, because a tag pushed
+# with GITHUB_TOKEN does not start other workflows.
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version part to bump
+        type: choice
+        options: [patch, minor]
+        default: patch
+      dry_run:
+        description: Print the next tag and do not push it
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+# Queue runs so two merges never compute the same tag.
+concurrency:
+  group: tag-on-merge
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Plan release
+        id: plan
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          INPUT_BUMP: ${{ inputs.bump }}
+          INPUT_DRY_RUN: ${{ inputs.dry_run }}
+          REF: ${{ github.ref }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            if [ "$INPUT_DRY_RUN" != "true" ] && [ "$REF" != "refs/heads/main" ]; then
+              echo "::error::A release from workflow_dispatch must run on main (got $REF)."
+              exit 1
+            fi
+            {
+              echo "bump=$INPUT_BUMP"
+              echo "dry_run=$INPUT_DRY_RUN"
+              echo "source=manual dispatch"
+            } >>"$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          has_label() { jq -e --arg l "$1" 'index($l) != null' <<<"$LABELS" >/dev/null; }
+          bump="patch"
+          if has_label release:skip; then
+            if has_label release:minor; then
+              echo "PR #$PR_NUMBER has release:skip and release:minor. release:skip wins."
+            fi
+            bump="skip"
+          elif has_label release:minor; then
+            bump="minor"
+          fi
+          {
+            echo "bump=$bump"
+            echo "dry_run=false"
+            echo "source=PR #$PR_NUMBER"
+          } >>"$GITHUB_OUTPUT"
+          if [ "$bump" = "skip" ]; then
+            echo "No release: PR #$PR_NUMBER has the \`release:skip\` label." >>"$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Mint saber-cli-bot token
+        id: app-token
+        if: steps.plan.outputs.bump != 'skip' && steps.plan.outputs.dry_run != 'true'
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.CLI_BOT_APP_ID }}
+          private-key: ${{ secrets.CLI_BOT_PRIVATE_KEY }}
+
+      - uses: actions/checkout@v4
+        if: steps.plan.outputs.bump != 'skip'
+        with:
+          # The merge commit on main, not the PR merge ref.
+          ref: ${{ github.event.pull_request.merge_commit_sha || github.sha }}
+          fetch-depth: 0
+          fetch-tags: true
+          token: ${{ steps.app-token.outputs.token || github.token }}
+
+      - name: Compute next tag
+        id: next
+        if: steps.plan.outputs.bump != 'skip'
+        env:
+          BUMP: ${{ steps.plan.outputs.bump }}
+        run: |
+          existing=$(git tag --points-at HEAD | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' || true)
+          if [ -n "$existing" ]; then
+            echo "already_tagged=true" >>"$GITHUB_OUTPUT"
+            echo "No release: commit $(git rev-parse --short HEAD) already has tag $existing." >>"$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          tag=$(git tag --list | bash .github/scripts/next-version.sh "$BUMP")
+          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+            echo "::error::Computed tag $tag already exists. Check the tags on origin before you run this again."
+            exit 1
+          fi
+          echo "tag=$tag" >>"$GITHUB_OUTPUT"
+
+      - name: Report dry run
+        if: steps.plan.outputs.dry_run == 'true' && steps.next.outputs.tag != ''
+        env:
+          TAG: ${{ steps.next.outputs.tag }}
+          BUMP: ${{ steps.plan.outputs.bump }}
+        run: |
+          echo "Dry run: the next $BUMP release is \`$TAG\` at $(git rev-parse --short HEAD). No tag was pushed." >>"$GITHUB_STEP_SUMMARY"
+
+      - name: Push tag
+        if: steps.plan.outputs.dry_run != 'true' && steps.next.outputs.tag != ''
+        env:
+          TAG: ${{ steps.next.outputs.tag }}
+          SOURCE: ${{ steps.plan.outputs.source }}
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          bot_id=$(gh api "/users/${APP_SLUG}[bot]" --jq .id)
+          git config user.name "${APP_SLUG}[bot]"
+          git config user.email "${bot_id}+${APP_SLUG}[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "CLI $TAG ($SOURCE)"
+          git push origin "refs/tags/$TAG"
+          echo "Released \`$TAG\` at $(git rev-parse --short HEAD) ($SOURCE). 01-release publishes the binaries." >>"$GITHUB_STEP_SUMMARY"
